@@ -3,93 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦞 Moltbot Dashboard</title>
+    <title>🦞 Moltbot Minecraft Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- Connection Overlay (Minecraft Server Connect Style) -->
+    <div id="connectionOverlay" class="connection-overlay">
+        <div class="minecraft-panel connection-panel">
+            <h1 class="pixel-title">⛏️ JOIN SERVER</h1>
+            <div class="form-group">
+                <label>Gateway URL</label>
+                <input 
+                    type="text" 
+                    id="gatewayUrl" 
+                    class="minecraft-input"
+                    placeholder="http://localhost:18789"
+                    value="http://localhost:18789"
+                >
+            </div>
+            <div class="form-group">
+                <label>Bearer Token</label>
+                <input 
+                    type="password" 
+                    id="gatewayToken" 
+                    class="minecraft-input"
+                    placeholder="Enter your gateway token"
+                >
+            </div>
+            <div class="button-group">
+                <button id="connectBtn" class="minecraft-btn primary">JOIN SERVER</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <h1>🦞 Moltbot Dashboard</h1>
-            <div class="header-controls">
-                <button id="settingsBtn" class="btn-icon" title="Settings">⚙️</button>
-                <button id="refreshBtn" class="btn-icon" title="Manual Refresh">🔄</button>
-                <div class="connection-status">
-                    <span class="status-dot" id="statusDot"></span>
-                    <span id="statusText">Disconnected</span>
-                </div>
+        <!-- Minecraft Hotbar (Top) -->
+        <div class="hotbar">
+            <div class="hotbar-slot">
+                <div class="slot-icon">🦞</div>
+                <div class="slot-label">Moltbot</div>
             </div>
-        </header>
-
-        <!-- Settings Panel (hidden by default) -->
-        <div id="settingsPanel" class="settings-panel hidden">
-            <div class="settings-content">
-                <h2>Connection Settings</h2>
-                <div class="form-group">
-                    <label for="gatewayUrl">Gateway URL</label>
-                    <input 
-                        type="text" 
-                        id="gatewayUrl" 
-                        placeholder="http://localhost:18789"
-                        value="http://localhost:18789"
-                    >
-                </div>
-                <div class="form-group">
-                    <label for="gatewayToken">Bearer Token</label>
-                    <input 
-                        type="password" 
-                        id="gatewayToken" 
-                        placeholder="Enter your gateway token"
-                    >
-                </div>
-                <div class="settings-actions">
-                    <button id="connectBtn" class="btn-primary">Connect</button>
-                    <button id="closeSettingsBtn" class="btn-secondary">Close</button>
-                </div>
+            <div class="hotbar-slot">
+                <div class="status-indicator" id="statusIndicator">●</div>
+                <div class="slot-label" id="statusText">Offline</div>
+            </div>
+            <div class="hotbar-slot">
+                <div class="slot-value" id="sessionCount">0</div>
+                <div class="slot-label">Sessions</div>
+            </div>
+            <div class="hotbar-slot">
+                <div class="slot-value" id="modelName">-</div>
+                <div class="slot-label">Model</div>
+            </div>
+            <div class="hotbar-slot">
+                <div class="slot-value" id="tokensUsed">0</div>
+                <div class="slot-label">Tokens</div>
+            </div>
+            <div class="hotbar-slot">
+                <div class="slot-value" id="costDisplay">$0</div>
+                <div class="slot-label">Cost</div>
+            </div>
+            <div class="hotbar-slot">
+                <div class="slot-value" id="uptimeDisplay">0s</div>
+                <div class="slot-label">Uptime</div>
+            </div>
+            <div class="hotbar-slot">
+                <div class="slot-value" id="cronCount">0</div>
+                <div class="slot-label">Crons</div>
+            </div>
+            <div class="hotbar-slot clickable" id="refreshBtn">
+                <div class="slot-icon">🔄</div>
+                <div class="slot-label">Refresh</div>
             </div>
         </div>
 
-        <!-- Main Dashboard Grid -->
-        <div class="dashboard-grid">
-            <!-- Sessions Panel (Left, Large) -->
-            <section class="panel sessions-panel">
-                <div class="panel-header">
-                    <h2>Active Sessions</h2>
-                    <span class="pulse" id="sessionsPulse"></span>
-                </div>
-                <div class="panel-content" id="sessionsContent">
-                    <div class="loading">Connect to view sessions...</div>
+        <!-- Main Dashboard Area -->
+        <div class="dashboard-layout">
+            <!-- Main World View (Sessions as Players) -->
+            <section class="world-panel minecraft-panel">
+                <div class="panel-title">🌍 ACTIVE WORLD</div>
+                <div class="world-content" id="worldContent">
+                    <div class="loading-text">Connect to join the world...</div>
                 </div>
             </section>
 
-            <!-- Status Panel (Top Right) -->
-            <section class="panel status-panel">
-                <div class="panel-header">
-                    <h2>System Status</h2>
-                    <span class="pulse" id="statusPulse"></span>
+            <!-- Right Panel: Crafting Table (Cron Jobs) -->
+            <aside class="crafting-panel minecraft-panel">
+                <div class="panel-title">⚙️ SCHEDULED CRAFTS</div>
+                <div class="crafting-content" id="craftingContent">
+                    <div class="loading-text">No crafts scheduled...</div>
                 </div>
-                <div class="panel-content" id="statusContent">
-                    <div class="loading">Connect to view status...</div>
-                </div>
-            </section>
-
-            <!-- Cron Jobs Panel (Bottom Right) -->
-            <section class="panel cron-panel">
-                <div class="panel-header">
-                    <h2>Scheduled Jobs</h2>
-                    <span class="pulse" id="cronPulse"></span>
-                </div>
-                <div class="panel-content" id="cronContent">
-                    <div class="loading">Connect to view cron jobs...</div>
-                </div>
-            </section>
+            </aside>
         </div>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <span>Last updated: <span id="lastUpdate">Never</span></span>
-            <span>Auto-refresh: <span id="autoRefreshStatus">Off</span></span>
-        </footer>
+        <!-- XP Bar (Bottom Status) -->
+        <div class="xp-bar-container">
+            <div class="xp-bar">
+                <div class="xp-fill" id="xpFill" style="width: 0%"></div>
+            </div>
+            <div class="xp-text">
+                <span id="lastUpdate">Never updated</span>
+                <span id="autoRefreshStatus">Auto-refresh: Off</span>
+            </div>
+        </div>
     </div>
 
     <script src="js/app.js"></script>

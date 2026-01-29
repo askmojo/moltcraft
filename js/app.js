@@ -1,6 +1,6 @@
-// Moltbot Dashboard - Main Application Logic
+// Moltbot Minecraft Dashboard - Main Application Logic
 
-class MoltbotDashboard {
+class MinecraftDashboard {
     constructor() {
         this.gatewayUrl = localStorage.getItem('gatewayUrl') || 'http://localhost:18789';
         this.gatewayToken = localStorage.getItem('gatewayToken') || '';
@@ -22,35 +22,25 @@ class MoltbotDashboard {
     }
 
     setupEventListeners() {
-        // Settings button
-        document.getElementById('settingsBtn').addEventListener('click', () => {
-            this.showSettings();
-        });
-
-        // Close settings
-        document.getElementById('closeSettingsBtn').addEventListener('click', () => {
-            this.hideSettings();
-        });
-
         // Connect button
         document.getElementById('connectBtn').addEventListener('click', () => {
             this.saveSettings();
             this.connect();
         });
 
-        // Manual refresh
+        // Refresh button
         document.getElementById('refreshBtn').addEventListener('click', () => {
             if (this.isConnected) {
                 this.refreshAll();
+                this.animateSlotClick('refreshBtn');
             }
         });
+    }
 
-        // Close settings on ESC
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                this.hideSettings();
-            }
-        });
+    animateSlotClick(elementId) {
+        const element = document.getElementById(elementId);
+        element.classList.add('selected');
+        setTimeout(() => element.classList.remove('selected'), 200);
     }
 
     loadSettings() {
@@ -66,16 +56,7 @@ class MoltbotDashboard {
         localStorage.setItem('gatewayToken', this.gatewayToken);
     }
 
-    showSettings() {
-        document.getElementById('settingsPanel').classList.remove('hidden');
-    }
-
-    hideSettings() {
-        document.getElementById('settingsPanel').classList.add('hidden');
-    }
-
     async connect() {
-        this.hideSettings();
         this.updateConnectionStatus('Connecting...', false);
 
         try {
@@ -85,6 +66,9 @@ class MoltbotDashboard {
             this.isConnected = true;
             this.updateConnectionStatus('Connected', true);
             
+            // Hide connection overlay
+            document.getElementById('connectionOverlay').classList.add('hidden');
+            
             // Start auto-refresh
             this.startAutoRefresh();
             
@@ -92,27 +76,28 @@ class MoltbotDashboard {
             this.refreshAll();
         } catch (error) {
             this.isConnected = false;
-            this.updateConnectionStatus('Error: ' + error.message, false, true);
-            this.stopAutoRefresh();
+            this.updateConnectionStatus('Error: ' + error.message, false);
         }
     }
 
-    updateConnectionStatus(text, connected = false, error = false) {
-        const statusDot = document.getElementById('statusDot');
+    updateConnectionStatus(text, connected = false) {
+        const statusIndicator = document.getElementById('statusIndicator');
         const statusText = document.getElementById('statusText');
         
         statusText.textContent = text;
-        statusDot.className = 'status-dot';
+        statusIndicator.className = 'status-indicator';
         
         if (connected) {
-            statusDot.classList.add('connected');
-        } else if (error) {
-            statusDot.classList.add('error');
+            statusIndicator.classList.add('connected');
+        } else {
+            statusIndicator.classList.add('disconnected');
         }
     }
 
     async callTool(toolName, args) {
-        const response = await fetch(`${this.gatewayUrl}/tools/invoke`, {
+        const url = `${window.location.origin}/api/tools/invoke`;
+        
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -138,7 +123,7 @@ class MoltbotDashboard {
             this.refreshAll();
         }, this.refreshIntervalMs);
         
-        document.getElementById('autoRefreshStatus').textContent = 'On (10s)';
+        document.getElementById('autoRefreshStatus').textContent = 'Auto-refresh: On (10s)';
     }
 
     stopAutoRefresh() {
@@ -146,7 +131,7 @@ class MoltbotDashboard {
             clearInterval(this.refreshInterval);
             this.refreshInterval = null;
         }
-        document.getElementById('autoRefreshStatus').textContent = 'Off';
+        document.getElementById('autoRefreshStatus').textContent = 'Auto-refresh: Off';
     }
 
     async refreshAll() {
@@ -161,19 +146,10 @@ class MoltbotDashboard {
         await Promise.allSettled(promises);
         
         this.updateLastRefreshTime();
-    }
-
-    animatePulse(elementId) {
-        const pulse = document.getElementById(elementId);
-        pulse.classList.remove('active');
-        // Trigger reflow to restart animation
-        void pulse.offsetWidth;
-        pulse.classList.add('active');
+        this.updateXPBar();
     }
 
     async refreshSessions() {
-        this.animatePulse('sessionsPulse');
-        
         try {
             const result = await this.callTool('sessions_list', {
                 messageLimit: 1,
@@ -182,58 +158,89 @@ class MoltbotDashboard {
 
             this.renderSessions(result);
         } catch (error) {
-            this.renderError('sessionsContent', 'Failed to load sessions: ' + error.message);
+            this.renderError('worldContent', 'Failed to load sessions: ' + error.message);
         }
     }
 
     async refreshStatus() {
-        this.animatePulse('statusPulse');
-        
         try {
             const result = await this.callTool('session_status', {});
             this.renderStatus(result);
         } catch (error) {
-            this.renderError('statusContent', 'Failed to load status: ' + error.message);
+            console.error('Failed to load status:', error);
         }
     }
 
     async refreshCronJobs() {
-        this.animatePulse('cronPulse');
-        
         try {
             const result = await this.callTool('cron', {
                 action: 'list'
             });
             this.renderCronJobs(result);
         } catch (error) {
-            this.renderError('cronContent', 'Failed to load cron jobs: ' + error.message);
+            this.renderError('craftingContent', 'Failed to load cron jobs: ' + error.message);
         }
     }
 
-    renderSessions(data) {
-        const container = document.getElementById('sessionsContent');
+    renderSessions(apiResponse) {
+        const container = document.getElementById('worldContent');
         
-        if (!data || !data.sessions || data.sessions.length === 0) {
-            container.innerHTML = '<div class="loading">No active sessions</div>';
+        // Parse the nested API response structure
+        let sessions = [];
+        if (apiResponse?.result?.details?.sessions) {
+            sessions = apiResponse.result.details.sessions;
+        } else if (apiResponse?.details?.sessions) {
+            sessions = apiResponse.details.sessions;
+        } else if (apiResponse?.sessions) {
+            sessions = apiResponse.sessions;
+        }
+        
+        if (sessions.length === 0) {
+            container.innerHTML = '<div class="loading-text">No players in the world</div>';
             return;
         }
 
-        const html = data.sessions.map(session => {
-            const timeSince = this.getTimeSince(session.lastActivity);
-            const messagePreview = this.getMessagePreview(session);
-            const badgeClass = session.kind || 'main';
+        // Update session count in hotbar
+        document.getElementById('sessionCount').textContent = sessions.length;
+
+        const html = sessions.map(session => {
+            const timeSince = this.getTimeSince(session.updatedAt);
+            const sessionType = this.getSessionType(session.key);
+            const tokenPercent = this.calculateTokenPercent(session.totalTokens);
+            const healthClass = tokenPercent > 70 ? 'warning' : tokenPercent > 90 ? 'danger' : '';
+            const isWorking = this.isRecentlyActive(session.updatedAt);
+            
+            let emoji = '⛏️'; // Mining/working
+            if (!isWorking) emoji = '💤'; // Idle
+            if (sessionType === 'main') emoji = '💎'; // Diamond for main
+            if (sessionType === 'subagent') emoji = '⚡'; // Lightning for subagent
             
             return `
-                <div class="session-card">
-                    <div class="session-header">
-                        <span class="session-key">${this.escapeHtml(session.key)}</span>
-                        <span class="session-badge ${badgeClass}">${badgeClass}</span>
+                <div class="player-card ${sessionType}-session ${isWorking ? 'working' : ''}">
+                    <div class="player-avatar ${sessionType} ${isWorking ? '' : 'idle'}">
+                        ${emoji}
                     </div>
-                    <div class="session-info">
-                        Agent: <code>${this.escapeHtml(session.agentId || 'unknown')}</code>
+                    <div class="player-info">
+                        <div class="player-nametag">${this.escapeHtml(session.label || session.key.split(':').pop())}</div>
+                        
+                        <div class="player-health">
+                            <span class="health-label">HP:</span>
+                            <div class="health-bar">
+                                <div class="health-fill ${healthClass}" style="width: ${100 - tokenPercent}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="player-stats">
+                            Model: <code>${this.escapeHtml(this.shortModel(session.model))}</code>
+                            · Tokens: ${(session.totalTokens || 0).toLocaleString()}
+                        </div>
+                        
+                        <div class="player-stats">
+                            Channel: ${this.escapeHtml(session.channel || session.lastChannel || 'n/a')}
+                        </div>
+                        
+                        <div class="player-activity">${timeSince}</div>
                     </div>
-                    <div class="session-message">${this.escapeHtml(messagePreview)}</div>
-                    <div class="session-time">${timeSince}</div>
                 </div>
             `;
         }).join('');
@@ -241,70 +248,62 @@ class MoltbotDashboard {
         container.innerHTML = html;
     }
 
-    renderStatus(data) {
-        const container = document.getElementById('statusContent');
+    renderStatus(apiResponse) {
+        // Parse nested response
+        let data = {};
+        try {
+            const text = apiResponse?.result?.content?.[0]?.text || '';
+            if (text) data = typeof text === 'string' ? JSON.parse(text) : text;
+        } catch(e) {
+            data = apiResponse || {};
+        }
         
-        if (!data) {
-            container.innerHTML = '<div class="error">No status data</div>';
-            return;
-        }
-
-        const items = [];
-
-        // Model
+        // Update hotbar stats
         if (data.model) {
-            items.push(this.createStatusItem('Model', data.model, true));
+            document.getElementById('modelName').textContent = this.shortModel(data.model);
         }
-
-        // Session info
-        if (data.sessionKey) {
-            items.push(this.createStatusItem('Session', data.sessionKey));
-        }
-
-        // Usage stats
+        
         if (data.usage) {
-            const usage = data.usage;
-            if (usage.tokensTotal) {
-                items.push(this.createStatusItem('Total Tokens', usage.tokensTotal.toLocaleString()));
+            if (data.usage.tokensTotal) {
+                const tokens = data.usage.tokensTotal;
+                document.getElementById('tokensUsed').textContent = this.formatNumber(tokens);
             }
-            if (usage.cost) {
-                items.push(this.createStatusItem('Cost', '$' + usage.cost.toFixed(4)));
+            if (data.usage.cost) {
+                document.getElementById('costDisplay').textContent = '$' + data.usage.cost.toFixed(2);
             }
         }
-
-        // Uptime
+        
         if (data.uptime) {
-            items.push(this.createStatusItem('Uptime', this.formatDuration(data.uptime)));
+            document.getElementById('uptimeDisplay').textContent = this.formatDuration(data.uptime);
         }
-
-        // Message count
-        if (data.messageCount !== undefined) {
-            items.push(this.createStatusItem('Messages', data.messageCount));
-        }
-
-        container.innerHTML = items.join('');
     }
 
     renderCronJobs(data) {
-        const container = document.getElementById('cronContent');
+        const container = document.getElementById('craftingContent');
         
         if (!data || !data.jobs || data.jobs.length === 0) {
-            container.innerHTML = '<div class="loading">No scheduled jobs</div>';
+            container.innerHTML = '<div class="loading-text">No crafts scheduled</div>';
+            document.getElementById('cronCount').textContent = '0';
             return;
         }
 
+        // Update cron count in hotbar
+        document.getElementById('cronCount').textContent = data.jobs.length;
+
         const html = data.jobs.map(job => {
-            const enabled = job.enabled ? 'yes' : 'no';
+            const enabled = job.enabled;
             const lastRun = job.lastRun ? this.formatDate(job.lastRun) : 'Never';
             
             return `
-                <div class="cron-job">
-                    <div class="cron-header">
-                        <span class="cron-name">${this.escapeHtml(job.name || job.id)}</span>
-                        <span class="cron-enabled ${enabled}">${enabled}</span>
+                <div class="craft-item">
+                    <div class="craft-header">
+                        <div class="craft-name">${this.escapeHtml(job.name || job.id)}</div>
+                        <div class="craft-status ${enabled ? 'enabled' : 'disabled'}">
+                            ${enabled ? 'ON' : 'OFF'}
+                        </div>
                     </div>
-                    <div class="cron-schedule">${this.escapeHtml(job.schedule || 'N/A')}</div>
-                    <div class="cron-last-run">Last run: ${lastRun}</div>
+                    <div class="craft-schedule">${this.escapeHtml(job.schedule || 'N/A')}</div>
+                    <div class="craft-last-run">Last: ${lastRun}</div>
                 </div>
             `;
         }).join('');
@@ -314,29 +313,27 @@ class MoltbotDashboard {
 
     renderError(containerId, message) {
         const container = document.getElementById(containerId);
-        container.innerHTML = `<div class="error">${this.escapeHtml(message)}</div>`;
+        container.innerHTML = `<div class="loading-text" style="color: var(--red);">${this.escapeHtml(message)}</div>`;
     }
 
-    createStatusItem(label, value, large = false) {
-        const sizeClass = large ? 'large' : '';
-        return `
-            <div class="status-item">
-                <div class="status-label">${label}</div>
-                <div class="status-value ${sizeClass}">${this.escapeHtml(String(value))}</div>
-            </div>
-        `;
+    getSessionType(key) {
+        if (key.includes('subagent')) return 'subagent';
+        if (key.includes('isolated')) return 'isolated';
+        return 'main';
     }
 
-    getMessagePreview(session) {
-        if (!session.messages || session.messages.length === 0) {
-            return 'No messages';
-        }
-        
-        const lastMsg = session.messages[session.messages.length - 1];
-        const content = lastMsg.content || lastMsg.text || '[No content]';
-        
-        // Truncate to 80 chars
-        return content.length > 80 ? content.substring(0, 80) + '...' : content;
+    calculateTokenPercent(tokens) {
+        // Assume max context of 100k tokens
+        const maxTokens = 100000;
+        return Math.min(100, (tokens / maxTokens) * 100);
+    }
+
+    isRecentlyActive(timestamp) {
+        if (!timestamp) return false;
+        const now = Date.now();
+        const then = new Date(timestamp).getTime();
+        const diffMinutes = (now - then) / 1000 / 60;
+        return diffMinutes < 5; // Active if updated in last 5 minutes
     }
 
     getTimeSince(timestamp) {
@@ -363,20 +360,47 @@ class MoltbotDashboard {
         const hours = Math.floor(minutes / 60);
         const days = Math.floor(hours / 24);
         
-        if (days > 0) return `${days}d ${hours % 24}h`;
-        if (hours > 0) return `${hours}h ${minutes % 60}m`;
-        if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+        if (days > 0) return `${days}d`;
+        if (hours > 0) return `${hours}h`;
+        if (minutes > 0) return `${minutes}m`;
         return `${seconds}s`;
     }
 
     formatDate(timestamp) {
         const date = new Date(timestamp);
-        return date.toLocaleString();
+        const now = new Date();
+        const isToday = date.toDateString() === now.toDateString();
+        
+        if (isToday) {
+            return date.toLocaleTimeString();
+        }
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+
+    formatNumber(num) {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+        return num.toString();
+    }
+
+    shortModel(model) {
+        if (!model) return 'unknown';
+        // Extract short name from model string
+        const parts = model.split('/');
+        const name = parts[parts.length - 1];
+        return name.replace('claude-', '').replace('anthropic/', '');
     }
 
     updateLastRefreshTime() {
         const now = new Date().toLocaleTimeString();
-        document.getElementById('lastUpdate').textContent = now;
+        document.getElementById('lastUpdate').textContent = `Updated: ${now}`;
+    }
+
+    updateXPBar() {
+        // Animate XP bar based on time (just for visual effect)
+        const seconds = new Date().getSeconds();
+        const percent = (seconds / 60) * 100;
+        document.getElementById('xpFill').style.width = percent + '%';
     }
 
     escapeHtml(text) {
@@ -388,5 +412,5 @@ class MoltbotDashboard {
 
 // Initialize dashboard when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    window.dashboard = new MoltbotDashboard();
+    window.dashboard = new MinecraftDashboard();
 });
