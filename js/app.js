@@ -518,14 +518,21 @@ class MoltcraftApp {
     }
 
     updateBottomPanel() {
-        const panel = document.getElementById('rightSidebar');
+        const panel = document.getElementById('bottomPanel');
+        const chatPanel = document.getElementById('chatSidebar');
         
         if (!this.selectedSession) {
             panel.classList.add('hidden');
+            chatPanel.classList.add('hidden');
+            document.body.classList.remove('panel-open');
+            this.resizeCanvas();
             return;
         }
 
         panel.classList.remove('hidden');
+        chatPanel.classList.remove('hidden');
+        document.body.classList.add('panel-open');
+        this.resizeCanvas();
 
         const session = this.selectedSession;
         

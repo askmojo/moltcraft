@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⛏️ MOLTCRAFT - Agent Dashboard</title>
-    <link rel="stylesheet" href="css/style.css?v=14">
+    <link rel="stylesheet" href="css/style.css?v=15">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -87,51 +87,55 @@ window.onerror = function(msg, url, line, col, err) {
             </div>
         </div>
 
-        <!-- Right Sidebar - Agent Details & Chat -->
-        <div id="rightSidebar" class="right-sidebar hidden">
-            <div class="right-sidebar-portrait">
-                <div class="portrait-frame">
-                    <canvas id="portraitCanvas" width="160" height="160"></canvas>
+        <!-- Right Sidebar - Chat Only -->
+        <div id="chatSidebar" class="chat-sidebar hidden">
+            <div class="chat-sidebar-header">
+                <span class="pixel-text">SESSION CHAT</span>
+            </div>
+            <div id="chatMessages" class="chat-messages">
+                <div class="chat-empty">Select an agent to chat...</div>
+            </div>
+            <div class="chat-input-row">
+                <input type="text" id="messageInput" placeholder="Send a message..." class="chat-input">
+                <button id="sendMessageBtn" class="send-btn">⚡</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Panel - Agent Details -->
+    <div id="bottomPanel" class="bottom-panel hidden">
+        <div class="panel-left">
+            <div class="portrait-frame">
+                <canvas id="portraitCanvas" width="160" height="160"></canvas>
+            </div>
+        </div>
+        <div class="panel-center">
+            <div class="session-header">
+                <span class="session-name" id="selectedSessionName">Agent Name</span>
+                <span class="model-badge" id="selectedModel">claude-opus-4-5</span>
+            </div>
+            <div class="session-stats">
+                <div class="stat-item">
+                    <span class="stat-label">CTX:</span>
+                    <div class="progress-bar">
+                        <div id="ctxProgress" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <span id="ctxPercent">0%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="tokenUsage">0</span> tokens
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="messageCount">0</span> msgs
+                </div>
+                <div class="stat-item">
+                    <span class="channel-badge" id="channelBadge">telegram</span>
                 </div>
             </div>
-            <div class="right-sidebar-info">
-                <div class="session-header">
-                    <span class="session-name" id="selectedSessionName">Agent Name</span>
-                    <span class="model-badge" id="selectedModel">claude-opus-4-5</span>
-                </div>
-                <div class="session-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">CTX:</span>
-                        <div class="progress-bar">
-                            <div id="ctxProgress" class="progress-fill" style="width: 0%"></div>
-                        </div>
-                        <span id="ctxPercent">0%</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="tokenUsage">0</span> tokens
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="messageCount">0</span> msgs
-                    </div>
-                    <div class="stat-item">
-                        <span class="channel-badge" id="channelBadge">telegram</span>
-                    </div>
-                </div>
-                <div class="right-sidebar-actions">
-                    <button class="action-btn-small" id="viewHistoryBtn" title="View History">📋</button>
-                    <button class="action-btn-small" id="refreshBtn" title="Refresh">🔄</button>
-                </div>
-            </div>
-            <div class="right-sidebar-chat">
-                <div class="chat-title">SESSION CHAT</div>
-                <div id="chatMessages" class="chat-messages">
-                    <div class="chat-empty">No messages yet...</div>
-                </div>
-                <div class="chat-input-row">
-                    <input type="text" id="messageInput" placeholder="Send a message..." class="chat-input">
-                    <button id="sendMessageBtn" class="send-btn">⚡</button>
-                </div>
-            </div>
+        </div>
+        <div class="panel-right">
+            <button class="action-btn" id="viewHistoryBtn" title="View History">📋</button>
+            <button class="action-btn" id="refreshBtn" title="Refresh">🔄</button>
         </div>
     </div>
 
@@ -155,6 +159,6 @@ window.onerror = function(msg, url, line, col, err) {
     <!-- Toast Notifications Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <script src="js/app.js?v=14"></script>
+    <script src="js/app.js?v=15"></script>
 </body>
 </html>
