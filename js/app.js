@@ -1228,7 +1228,7 @@ class IsometricWorld {
                     timer: 180,
                     msgIndex: 0,
                     messages: [
-                        () => { const app = window.moltcraftApp; if (!app?.gatewayUrl) return 'No gateway'; return fetch(`${app.gatewayUrl}/api/cron/list`, {headers:{'Authorization':`Bearer ${app.gatewayToken}`}}).then(r=>r.json()).then(d=>{const jobs=d.jobs||[];window._cronJobs=jobs;return jobs.length?`${jobs.length} cron jobs`:'No cron jobs';}).catch(()=>'Clock offline'); },
+                        () => { const app = window.moltcraftApp; if (!app?.gatewayUrl) return 'No gateway'; try { fetch(`${app.gatewayUrl}/api/cron/list`, {headers:{'Authorization':`Bearer ${app.gatewayToken}`}}).then(r=>r.json()).then(d=>{window._cronJobs=d.jobs||[];}).catch(()=>{}); } catch(e){} const jobs = window._cronJobs; return jobs?.length ? `${jobs.length} cron jobs` : 'Loading cron...'; },
                         () => { const jobs = window._cronJobs; if (!jobs?.length) return 'No schedules'; const j = jobs[Math.floor(Math.random()*jobs.length)]; return j.name ? `Job: ${j.name}` : 'Job running...'; },
                         () => { const jobs = window._cronJobs; if (!jobs?.length) return 'Idle clock'; const enabled = jobs.filter(j=>j.enabled!==false).length; return `${enabled}/${jobs.length} jobs enabled`; },
                         () => { const jobs = window._cronJobs; if (!jobs?.length) return 'Waiting...'; const j = jobs.find(j=>j.schedule?.kind==='cron'); return j ? `Schedule: ${j.schedule.expr||'custom'}` : 'Timer-based jobs'; },
@@ -1829,7 +1829,14 @@ class IsometricWorld {
                 if (sb.fadeDir === 0 && sb.opacity === 0) {
                     // Pick next message and start fading in
                     const msgFn = sb.messages[sb.msgIndex % sb.messages.length];
-                    sb.text = typeof msgFn === 'function' ? msgFn() : msgFn;
+                    const result = typeof msgFn === 'function' ? msgFn() : msgFn;
+                    // Handle async messages (Promises)
+                    if (result && typeof result.then === 'function') {
+                        result.then(text => { sb.text = text || '...'; }).catch(() => { sb.text = '...'; });
+                        sb.text = '...';
+                    } else {
+                        sb.text = result;
+                    }
                     sb.msgIndex++;
                     sb.fadeDir = 1;
                 } else if (sb.fadeDir === 0 && sb.opacity >= 1) {
