@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦞 Moltbot Minecraft Dashboard</title>
+    <title>⛏️ MOLTCRAFT - Visual World</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Connection Overlay (Minecraft Server Connect Style) -->
+    <!-- Connection Overlay -->
     <div id="connectionOverlay" class="connection-overlay">
         <div class="minecraft-panel connection-panel">
             <h1 class="pixel-title">⛏️ JOIN SERVER</h1>
@@ -39,75 +39,58 @@
         </div>
     </div>
 
-    <div class="container">
-        <!-- Minecraft Hotbar (Top) -->
-        <div class="hotbar">
-            <div class="hotbar-slot">
-                <div class="slot-icon">🦞</div>
-                <div class="slot-label">Moltbot</div>
-            </div>
-            <div class="hotbar-slot">
-                <div class="status-indicator" id="statusIndicator">●</div>
-                <div class="slot-label" id="statusText">Offline</div>
-            </div>
-            <div class="hotbar-slot">
-                <div class="slot-value" id="sessionCount">0</div>
-                <div class="slot-label">Sessions</div>
-            </div>
-            <div class="hotbar-slot">
-                <div class="slot-value" id="modelName">-</div>
-                <div class="slot-label">Model</div>
-            </div>
-            <div class="hotbar-slot">
-                <div class="slot-value" id="tokensUsed">0</div>
-                <div class="slot-label">Tokens</div>
-            </div>
-            <div class="hotbar-slot">
-                <div class="slot-value" id="costDisplay">$0</div>
-                <div class="slot-label">Cost</div>
-            </div>
-            <div class="hotbar-slot">
-                <div class="slot-value" id="uptimeDisplay">0s</div>
-                <div class="slot-label">Uptime</div>
-            </div>
-            <div class="hotbar-slot">
-                <div class="slot-value" id="cronCount">0</div>
-                <div class="slot-label">Crons</div>
-            </div>
-            <div class="hotbar-slot clickable" id="refreshBtn">
-                <div class="slot-icon">🔄</div>
-                <div class="slot-label">Refresh</div>
-            </div>
+    <!-- World Canvas -->
+    <canvas id="worldCanvas"></canvas>
+
+    <!-- Hover Tooltip -->
+    <div id="tooltip" class="tooltip hidden"></div>
+
+    <!-- Detail Panel (slide from right) -->
+    <div id="detailPanel" class="detail-panel hidden">
+        <div class="detail-header">
+            <div class="detail-title">Agent Details</div>
+            <button class="close-btn" id="closeDetailBtn">✕</button>
         </div>
+        <div id="detailContent" class="detail-content"></div>
+    </div>
 
-        <!-- Main Dashboard Area -->
-        <div class="dashboard-layout">
-            <!-- Main World View (Sessions as Players) -->
-            <section class="world-panel minecraft-panel">
-                <div class="panel-title">🌍 ACTIVE WORLD</div>
-                <div class="world-content" id="worldContent">
-                    <div class="loading-text">Connect to join the world...</div>
-                </div>
-            </section>
-
-            <!-- Right Panel: Crafting Table (Cron Jobs) -->
-            <aside class="crafting-panel minecraft-panel">
-                <div class="panel-title">⚙️ SCHEDULED CRAFTS</div>
-                <div class="crafting-content" id="craftingContent">
-                    <div class="loading-text">No crafts scheduled...</div>
-                </div>
-            </aside>
+    <!-- Hotbar (bottom overlay) -->
+    <div class="hotbar">
+        <div class="hotbar-slot">
+            <div class="slot-icon">⛏️</div>
+            <div class="slot-label">Moltcraft</div>
         </div>
-
-        <!-- XP Bar (Bottom Status) -->
-        <div class="xp-bar-container">
-            <div class="xp-bar">
-                <div class="xp-fill" id="xpFill" style="width: 0%"></div>
-            </div>
-            <div class="xp-text">
-                <span id="lastUpdate">Never updated</span>
-                <span id="autoRefreshStatus">Auto-refresh: Off</span>
-            </div>
+        <div class="hotbar-slot">
+            <div class="status-indicator" id="statusIndicator">●</div>
+            <div class="slot-label" id="statusText">Offline</div>
+        </div>
+        <div class="hotbar-slot">
+            <div class="slot-value" id="sessionCount">0</div>
+            <div class="slot-label">Sessions</div>
+        </div>
+        <div class="hotbar-slot">
+            <div class="slot-value" id="modelName">-</div>
+            <div class="slot-label">Model</div>
+        </div>
+        <div class="hotbar-slot">
+            <div class="slot-value" id="tokensUsed">0</div>
+            <div class="slot-label">Tokens</div>
+        </div>
+        <div class="hotbar-slot">
+            <div class="slot-value" id="costDisplay">$0</div>
+            <div class="slot-label">Cost</div>
+        </div>
+        <div class="hotbar-slot">
+            <div class="slot-value" id="uptimeDisplay">0s</div>
+            <div class="slot-label">Uptime</div>
+        </div>
+        <div class="hotbar-slot">
+            <div class="slot-value" id="cronCount">0</div>
+            <div class="slot-label">Crons</div>
+        </div>
+        <div class="hotbar-slot clickable" id="settingsBtn">
+            <div class="slot-icon">⚙️</div>
+            <div class="slot-label">Settings</div>
         </div>
     </div>
 

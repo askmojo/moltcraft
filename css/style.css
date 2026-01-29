@@ -1,7 +1,6 @@
-/* Minecraft Dashboard Styles */
+/* Moltcraft Visual World Styles */
 
 :root {
-    /* Minecraft Color Palette */
     --dirt-brown: #3b2d1e;
     --dark-panel: #1a1a1a;
     --light-bevel: #555;
@@ -20,68 +19,51 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    image-rendering: pixelated;
 }
 
 body {
     font-family: monospace;
-    background: var(--dirt-brown);
+    background: #000;
     color: var(--white);
-    min-height: 100vh;
-    /* Pixel grid background */
-    background-image: 
-        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
-        repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);
+    overflow: hidden;
+    height: 100vh;
 }
 
-.pixel-font {
-    font-family: 'Press Start 2P', monospace;
+/* Canvas */
+#worldCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
 }
 
-.container {
-    max-width: 1800px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-/* Minecraft Panel Base Style */
-.minecraft-panel {
-    background: var(--dark-panel);
-    border: 0;
-    border-radius: 0;
-    box-shadow: 
-        inset 2px 2px 0 var(--light-bevel),
-        inset -2px -2px 0 var(--dark-bevel),
-        0 4px 0 rgba(0,0,0,0.4);
-    position: relative;
-}
-
-.panel-title {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.8rem;
-    padding: 12px;
-    background: var(--dark-gray);
-    border-bottom: 2px solid var(--dark-bevel);
-    text-align: center;
-    letter-spacing: 1px;
-}
-
-/* Connection Overlay - Minecraft Server Select Style */
+/* Connection Overlay */
 .connection-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.95);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: 10000;
 }
 
 .connection-overlay.hidden {
     display: none;
+}
+
+.minecraft-panel {
+    background: var(--dark-panel);
+    border: 0;
+    box-shadow: 
+        inset 2px 2px 0 var(--light-bevel),
+        inset -2px -2px 0 var(--dark-bevel),
+        0 4px 0 rgba(0,0,0,0.4);
 }
 
 .connection-panel {
@@ -141,7 +123,6 @@ body {
     padding: 15px 25px;
     border: none;
     cursor: pointer;
-    position: relative;
     flex: 1;
     box-shadow: 
         inset 2px 2px 0 rgba(255,255,255,0.3),
@@ -152,17 +133,10 @@ body {
 
 .minecraft-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 
-        inset 2px 2px 0 rgba(255,255,255,0.4),
-        inset -2px -2px 0 rgba(0,0,0,0.6),
-        0 6px 0 rgba(0,0,0,0.4);
 }
 
 .minecraft-btn:active {
     transform: translateY(2px);
-    box-shadow: 
-        inset 2px 2px 0 rgba(0,0,0,0.5),
-        inset -2px -2px 0 rgba(255,255,255,0.2);
 }
 
 .minecraft-btn.primary {
@@ -170,37 +144,36 @@ body {
     color: #000;
 }
 
-.minecraft-btn.secondary {
-    background: var(--dark-gray);
-    color: var(--white);
-}
-
-/* Hotbar - Minecraft Style Inventory Bar */
+/* Hotbar - Bottom Overlay */
 .hotbar {
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
     gap: 4px;
-    margin-bottom: 20px;
-    padding: 8px;
-    background: var(--dark-panel);
+    padding: 10px;
+    background: rgba(26, 26, 26, 0.95);
     box-shadow: 
         inset 2px 2px 0 var(--light-bevel),
-        inset -2px -2px 0 var(--dark-bevel);
+        inset -2px -2px 0 var(--dark-bevel),
+        0 -4px 8px rgba(0,0,0,0.5);
+    z-index: 100;
 }
 
 .hotbar-slot {
     background: var(--dark-gray);
-    padding: 10px;
+    padding: 8px 12px;
     text-align: center;
     box-shadow: 
         inset 2px 2px 0 var(--dark-bevel),
         inset -2px -2px 0 var(--light-bevel);
-    min-height: 70px;
+    min-width: 80px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
 }
 
 .hotbar-slot.clickable {
@@ -209,38 +182,27 @@ body {
 
 .hotbar-slot.clickable:hover {
     background: #4a4a4a;
-    box-shadow: 
-        inset 2px 2px 0 var(--light-bevel),
-        inset -2px -2px 0 var(--dark-bevel);
-}
-
-.hotbar-slot.selected {
-    box-shadow: 
-        0 0 0 2px var(--white),
-        inset 2px 2px 0 var(--light-bevel),
-        inset -2px -2px 0 var(--dark-bevel);
 }
 
 .slot-icon {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
 }
 
 .slot-value {
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.7rem;
+    font-size: 0.6rem;
     color: var(--emerald);
 }
 
 .slot-label {
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.4rem;
+    font-size: 0.35rem;
     color: var(--gray);
     text-transform: uppercase;
 }
 
 .status-indicator {
-    font-size: 1.5rem;
-    animation: blink 2s infinite;
+    font-size: 1.2rem;
 }
 
 .status-indicator.connected {
@@ -249,6 +211,7 @@ body {
 
 .status-indicator.disconnected {
     color: var(--red);
+    animation: blink 2s infinite;
 }
 
 @keyframes blink {
@@ -256,324 +219,156 @@ body {
     25%, 75% { opacity: 0.5; }
 }
 
-/* Dashboard Layout */
-.dashboard-layout {
-    display: grid;
-    grid-template-columns: 2.5fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
+/* Tooltip */
+.tooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid var(--white);
+    padding: 12px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.5rem;
+    color: var(--white);
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 300px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
 }
 
-/* World Panel - Main Sessions View */
-.world-panel {
-    min-height: 500px;
+.tooltip.hidden {
+    display: none;
 }
 
-.world-content {
-    padding: 20px;
-    max-height: 600px;
-    overflow-y: auto;
+.tooltip-title {
+    color: var(--emerald);
+    margin-bottom: 8px;
+    font-size: 0.6rem;
 }
 
-/* Custom Scrollbar - Minecraft Style */
-.world-content::-webkit-scrollbar {
-    width: 16px;
+.tooltip-line {
+    margin: 4px 0;
+    color: var(--gray);
 }
 
-.world-content::-webkit-scrollbar-track {
-    background: var(--dark-bevel);
-    box-shadow: inset 2px 0 0 var(--dark-gray);
+.tooltip-line code {
+    color: var(--white);
 }
 
-.world-content::-webkit-scrollbar-thumb {
-    background: var(--dark-gray);
-    box-shadow: 
-        inset 2px 2px 0 var(--light-bevel),
-        inset -2px -2px 0 var(--dark-bevel);
+/* Detail Panel */
+.detail-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 400px;
+    height: 100%;
+    background: rgba(26, 26, 26, 0.98);
+    border-left: 3px solid var(--emerald);
+    box-shadow: -4px 0 16px rgba(0,0,0,0.7);
+    z-index: 200;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
 }
 
-.world-content::-webkit-scrollbar-thumb:hover {
-    background: var(--gray);
+.detail-panel:not(.hidden) {
+    transform: translateX(0);
 }
 
-/* Player Card - Session as Minecraft Character */
-.player-card {
+.detail-header {
     background: var(--dark-gray);
     padding: 15px;
-    margin-bottom: 12px;
-    box-shadow: 
-        inset 2px 2px 0 var(--light-bevel),
-        inset -2px -2px 0 var(--dark-bevel);
-    display: grid;
-    grid-template-columns: 60px 1fr;
-    gap: 15px;
-    position: relative;
-    transition: transform 0.1s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--dark-bevel);
 }
 
-.player-card:hover {
-    transform: translateX(4px);
+.detail-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.7rem;
+    color: var(--emerald);
 }
 
-.player-card.main-session {
-    border: 2px solid var(--diamond);
-}
-
-.player-card.subagent-session {
-    border: 2px solid var(--emerald);
-}
-
-.player-card.isolated-session {
-    border: 2px solid var(--purple);
-}
-
-/* Pixel Avatar */
-.player-avatar {
-    width: 60px;
-    height: 60px;
-    background: var(--emerald);
+.close-btn {
+    background: var(--red);
+    color: var(--white);
+    border: none;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
     box-shadow: 
         inset 2px 2px 0 rgba(255,255,255,0.3),
         inset -2px -2px 0 rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
 }
 
-.player-avatar.main { background: var(--diamond); }
-.player-avatar.subagent { background: var(--emerald); }
-.player-avatar.isolated { background: var(--purple); }
-.player-avatar.idle { filter: grayscale(80%); }
-
-/* Player Info */
-.player-info {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+.close-btn:hover {
+    background: #ff8888;
 }
 
-.player-nametag {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.7rem;
-    color: var(--white);
-    margin-bottom: 5px;
-}
-
-.player-health {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 5px;
-}
-
-.health-label {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.5rem;
-    color: var(--gray);
-}
-
-.health-bar {
-    flex: 1;
-    height: 12px;
-    background: var(--dark-bevel);
-    box-shadow: inset 1px 1px 0 rgba(0,0,0,0.5);
-    position: relative;
-    overflow: hidden;
-}
-
-.health-fill {
-    height: 100%;
-    background: var(--emerald);
-    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.3);
-    transition: width 0.5s;
-}
-
-.health-fill.warning {
-    background: var(--gold);
-}
-
-.health-fill.danger {
-    background: var(--red);
-}
-
-.player-stats {
-    font-size: 0.75rem;
-    color: var(--gray);
-}
-
-.player-stats code {
-    color: var(--white);
-    background: var(--dark-bevel);
-    padding: 2px 4px;
-}
-
-.player-activity {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.5rem;
-    color: var(--gold);
-    margin-top: 5px;
-}
-
-/* Working Animation */
-@keyframes mining {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-3px); }
-}
-
-.player-card.working .player-avatar {
-    animation: mining 0.5s steps(2) infinite;
-}
-
-/* Crafting Panel - Cron Jobs */
-.crafting-panel {
-    min-height: 500px;
-}
-
-.crafting-content {
-    padding: 15px;
-    max-height: 600px;
+.detail-content {
+    padding: 20px;
     overflow-y: auto;
+    height: calc(100% - 60px);
+    font-size: 0.75rem;
+    line-height: 1.6;
 }
 
-/* Craft Item - Cron Job */
-.craft-item {
-    background: var(--dark-gray);
-    padding: 12px;
-    margin-bottom: 10px;
-    box-shadow: 
-        inset 2px 2px 0 var(--light-bevel),
-        inset -2px -2px 0 var(--dark-bevel);
+.detail-section {
+    margin-bottom: 20px;
 }
 
-.craft-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.craft-name {
+.detail-section-title {
     font-family: 'Press Start 2P', monospace;
     font-size: 0.6rem;
+    color: var(--gold);
+    margin-bottom: 10px;
+}
+
+.detail-item {
+    margin: 8px 0;
+    color: var(--gray);
+}
+
+.detail-item strong {
     color: var(--white);
 }
 
-.craft-status {
-    padding: 3px 6px;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.4rem;
-    box-shadow: inset 1px 1px 0 rgba(0,0,0,0.5);
-}
-
-.craft-status.enabled {
-    background: var(--emerald);
-    color: #000;
-}
-
-.craft-status.disabled {
-    background: var(--red);
-    color: var(--white);
-}
-
-.craft-schedule {
-    font-size: 0.7rem;
-    color: var(--gray);
-    margin-bottom: 5px;
-}
-
-.craft-last-run {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.45rem;
-    color: var(--dark-gray);
-}
-
-/* XP Bar - Bottom Status */
-.xp-bar-container {
-    background: var(--dark-panel);
-    padding: 10px;
-    box-shadow: 
-        inset 2px 2px 0 var(--light-bevel),
-        inset -2px -2px 0 var(--dark-bevel);
-}
-
-.xp-bar {
-    height: 20px;
-    background: var(--dark-bevel);
-    margin-bottom: 8px;
-    position: relative;
-    box-shadow: inset 2px 2px 0 rgba(0,0,0,0.5);
-}
-
-.xp-fill {
-    height: 100%;
-    background: linear-gradient(to bottom, #7bd827 0%, #5fa820 50%, #4a8018 100%);
-    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.3);
-    transition: width 1s ease;
-}
-
-.xp-text {
-    display: flex;
-    justify-content: space-between;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.5rem;
-    color: var(--gray);
-}
-
-/* Loading Text */
-.loading-text {
-    text-align: center;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.7rem;
-    color: var(--gray);
-    padding: 40px 20px;
-}
-
-/* Responsive Design */
+/* Responsive */
 @media (max-width: 1200px) {
     .hotbar {
-        grid-template-columns: repeat(5, 1fr);
+        flex-wrap: wrap;
+        max-width: 90vw;
     }
     
-    .dashboard-layout {
-        grid-template-columns: 1fr;
+    .hotbar-slot {
+        min-width: 70px;
     }
 }
 
 @media (max-width: 768px) {
+    .detail-panel {
+        width: 100%;
+    }
+    
     .hotbar {
-        grid-template-columns: repeat(3, 1fr);
+        padding: 6px;
+        gap: 2px;
+    }
+    
+    .hotbar-slot {
+        min-width: 60px;
+        padding: 6px;
+    }
+    
+    .slot-icon {
+        font-size: 1rem;
+    }
+    
+    .slot-value {
+        font-size: 0.5rem;
     }
     
     .slot-label {
-        font-size: 0.35rem;
-    }
-    
-    .player-card {
-        grid-template-columns: 50px 1fr;
-        gap: 10px;
-    }
-    
-    .player-avatar {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .pixel-title {
-        font-size: 0.9rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .hotbar {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .container {
-        padding: 10px;
-    }
-    
-    .connection-panel {
-        padding: 20px;
+        font-size: 0.3rem;
     }
 }
