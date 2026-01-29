@@ -178,6 +178,7 @@ const sfx = new SoundEngine();
 class VoiceEngine {
     constructor() {
         this.elevenLabsKey = '';
+        this.globalMuted = false;
         this.autoSpeak = false;
         this.autoSpeakToasts = false;
         this.speaking = false;
@@ -396,27 +397,40 @@ class VoiceEngine {
     playAudio(url) {
         return new Promise((resolve) => {
             const audio = new Audio(url);
+            this._currentAudio = audio;
             this.speaking = true;
             audio.onended = () => {
                 this.speaking = false;
+                this._currentAudio = null;
                 resolve();
             };
             audio.onerror = () => {
                 this.speaking = false;
+                this._currentAudio = null;
                 resolve();
             };
             audio.play().catch(() => {
                 this.speaking = false;
+                this._currentAudio = null;
                 resolve();
             });
         });
     }
 
+    // Stop any currently playing audio immediately
+    stopAll() {
+        if (this._currentAudio) {
+            this._currentAudio.pause();
+            this._currentAudio.currentTime = 0;
+            this._currentAudio = null;
+        }
+        this.speaking = false;
+    }
+
     // Auto-speak agent response if enabled — uses agent-specific voice
-    // Only speaks for the active session, skips if already speaking
+    // Only speaks for the active session, skips if already speaking or globally muted
     async speakAgentResponse(text, sessionKey) {
-        if (this.speaking) {
-            console.log('[Voice] Already speaking, skipping');
+        if (this.globalMuted || this.speaking) {
             return;
         }
         if (this.autoSpeak && this.isConfigured && text) {
@@ -558,14 +572,17 @@ class MoltcraftApp {
         this.world = new IsometricWorld(canvas);
         
         // Bind action buttons
-        document.getElementById('refreshBtn').addEventListener('click', () => this.refreshData());
-        document.getElementById('newQuestBtn').addEventListener('click', () => this.showNewQuestModal());
+        document.getElementById('refreshBtn')?.addEventListener('click', () => this.refreshData());
+        document.getElementById('newQuestBtn')?.addEventListener('click', () => this.showNewQuestModal());
         document.getElementById('sendMessageBtn').addEventListener('click', () => this.sendMessage());
         document.getElementById('micBtn').addEventListener('click', () => voice.toggleRecording());
         document.getElementById('settingsBtn').addEventListener('click', () => this.showSettings());
         document.getElementById('muteBtn').addEventListener('click', () => {
             sfx.init();
             const muted = sfx.toggleMute();
+            // Also mute/unmute voice — stop immediately if muting
+            voice.globalMuted = muted;
+            if (muted) voice.stopAll();
             const btn = document.getElementById('muteBtn');
             btn.textContent = muted ? '🔇' : '🔊';
             btn.classList.toggle('muted', muted);
@@ -652,6 +669,9 @@ class MoltcraftApp {
             
             // Load ElevenLabs key from Moltbot config
             this.checkElevenLabsFromMoltbot();
+            
+            // Load channel status indicators in top bar
+            this.loadChannelStatus();
             
             // Check if onboarding is needed
             this.checkOnboarding();
@@ -1655,7 +1675,10 @@ class MoltcraftApp {
         }
         const prevText = this._lastAssistantText || '';
         const isNew = latestText && latestText !== prevText && prevText !== '';
-        if (isNew) {
+        console.log('[Voice Debug]', { isNew, globalMuted: voice.globalMuted, latestLen: latestText?.length, prevLen: prevText?.length, same: latestText === prevText, spokenSame: this._lastSpokenText === latestText });
+        if (isNew && this._lastSpokenText !== latestText) {
+            this._lastSpokenText = latestText;
+            console.log('[Voice Debug] 🔊 TRIGGERING VOICE for:', latestText?.substring(0, 60));
             voice.speakAgentResponse(latestText, this.selectedSession?.key);
         }
         this._lastAssistantText = latestText;
@@ -1762,6 +1785,315 @@ class MoltcraftApp {
         } catch (error) {
             this.showToast('❌ Failed to send message: ' + error.message, 'error');
         }
+    }
+
+    // ========================================
+    // BUILDING MODALS
+    // ========================================
+
+    showBuildingModal(buildingType) {
+        switch (buildingType) {
+            case 'craft':
+                this.showCronModal();
+                break;
+            case 'mine':
+                this.showTokenMineModal();
+                break;
+            case 'barracks':
+                this.showSkillsModal();
+                break;
+            case 'command':
+                this.showSettings();
+                // Switch to Moltbot tab to show config
+                const moltbotTab = document.querySelector('.settings-tab[data-tab="moltbot"]');
+                if (moltbotTab) moltbotTab.click();
+                return;
+        }
+    }
+
+    hideBuildingModal() {
+        document.getElementById('buildingModal')?.classList.add('hidden');
+    }
+
+    async showCronModal() {
+        const titleEl = document.getElementById('buildingModalTitle');
+        const bodyEl = document.getElementById('buildingModalBody');
+        const modal = document.getElementById('buildingModal');
+
+        if (titleEl) titleEl.textContent = '🕐 CLOCK TOWER — Cron Jobs';
+        if (bodyEl) bodyEl.innerHTML = '<div class="building-empty">Loading cron jobs...</div>';
+        modal?.classList.remove('hidden');
+
+        try {
+            const result = await this.invokeAPI('cron', { action: 'list' });
+
+            let jobs = [];
+            if (result?.result?.details?.jobs) {
+                jobs = result.result.details.jobs;
+            } else if (result?.result?.content?.[0]?.text) {
+                try {
+                    const parsed = JSON.parse(result.result.content[0].text);
+                    jobs = parsed.jobs || [];
+                } catch (e) {
+                    console.error('Failed to parse cron jobs:', e);
+                }
+            }
+
+            if (!jobs.length) {
+                bodyEl.innerHTML = '<div class="building-empty">No cron jobs configured. Add them via Moltbot CLI.</div>';
+                return;
+            }
+
+            let html = `<div class="building-section">
+                <div class="building-stat">
+                    <span class="building-stat-label">Total Jobs</span>
+                    <span class="building-stat-value">${jobs.length}</span>
+                </div>
+                <div class="building-stat">
+                    <span class="building-stat-label">Active</span>
+                    <span class="building-stat-value">${jobs.filter(j => j.enabled !== false).length} / ${jobs.length}</span>
+                </div>
+            </div>`;
+
+            html += '<div class="building-section">';
+            html += '<div class="building-section-title">SCHEDULED JOBS</div>';
+
+            jobs.forEach(job => {
+                const enabled = job.enabled !== false;
+                const scheduleKind = job.schedule?.kind || 'unknown';
+                let scheduleExpr = '';
+                if (scheduleKind === 'cron') {
+                    scheduleExpr = job.schedule?.expr || job.schedule?.expression || '—';
+                } else if (scheduleKind === 'every') {
+                    scheduleExpr = `every ${job.schedule?.interval || job.schedule?.expr || '?'}`;
+                } else if (scheduleKind === 'at') {
+                    scheduleExpr = `at ${job.schedule?.time || job.schedule?.expr || '?'}`;
+                } else {
+                    scheduleExpr = job.schedule?.expr || job.schedule?.expression || '—';
+                }
+
+                const lastRun = job.lastRunAt ? new Date(job.lastRunAt).toLocaleString() : 'Never';
+                const nextRun = job.nextRunAt ? new Date(job.nextRunAt).toLocaleString() : '—';
+
+                let payloadInfo = '';
+                if (job.payload) {
+                    payloadInfo = job.payload.kind || job.payload.type || '';
+                    if (job.payload.text) payloadInfo += ': ' + job.payload.text.substring(0, 40);
+                    if (job.payload.message) payloadInfo += ': ' + job.payload.message.substring(0, 40);
+                }
+
+                html += `<div class="cron-job-row">
+                    <div class="cron-job-header">
+                        <span class="cron-job-name">${this._escapeHtml(job.name || 'Unnamed')}</span>
+                        <span class="cron-job-badge ${enabled ? 'enabled' : 'disabled'}">${enabled ? '✅ ON' : '❌ OFF'}</span>
+                    </div>
+                    <div class="cron-job-details">
+                        <span>📅 ${this._escapeHtml(scheduleExpr)}</span>
+                        <span>⏮ ${lastRun}</span>
+                        <span>⏭ ${nextRun}</span>
+                    </div>
+                    ${payloadInfo ? `<div class="cron-job-details"><span>📋 ${this._escapeHtml(payloadInfo)}</span></div>` : ''}
+                </div>`;
+            });
+
+            html += '</div>';
+            if (bodyEl) bodyEl.innerHTML = html;
+
+        } catch (e) {
+            if (bodyEl) bodyEl.innerHTML = `<div class="building-empty">❌ Failed to load cron jobs: ${this._escapeHtml(e.message)}</div>`;
+        }
+    }
+
+    showTokenMineModal() {
+        const titleEl = document.getElementById('buildingModalTitle');
+        const bodyEl = document.getElementById('buildingModalBody');
+        const modal = document.getElementById('buildingModal');
+
+        if (titleEl) titleEl.textContent = '⛏️ TOKEN MINE — Usage';
+        modal?.classList.remove('hidden');
+
+        const sessions = this.sessions || [];
+        if (!sessions.length) {
+            if (bodyEl) bodyEl.innerHTML = '<div class="building-empty">No sessions found. Connect and wait for agents to appear.</div>';
+            return;
+        }
+
+        // Calculate token usage per session
+        const sessionUsage = sessions.map(s => ({
+            label: s.label || s.key || sessionUID(s),
+            tokens: s.totalTokens || s.stats?.totalTokens || 0,
+            messages: s.messageCount || s.messages?.length || 0
+        })).sort((a, b) => b.tokens - a.tokens);
+
+        const totalTokens = sessionUsage.reduce((sum, s) => sum + s.tokens, 0);
+        const totalMessages = sessionUsage.reduce((sum, s) => sum + s.messages, 0);
+        const maxTokens = sessionUsage.length ? sessionUsage[0].tokens : 1;
+        const estimatedCost = totalTokens * 0.000015;
+
+        let html = `<div class="building-section">
+            <div class="building-stat">
+                <span class="building-stat-label">Total Tokens</span>
+                <span class="building-stat-value">${totalTokens.toLocaleString()}</span>
+            </div>
+            <div class="building-stat">
+                <span class="building-stat-label">Total Messages</span>
+                <span class="building-stat-value">${totalMessages.toLocaleString()}</span>
+            </div>
+            <div class="building-stat">
+                <span class="building-stat-label">Estimated Cost</span>
+                <span class="building-stat-value">$${estimatedCost.toFixed(4)}</span>
+            </div>
+            <div class="building-stat">
+                <span class="building-stat-label">Active Sessions</span>
+                <span class="building-stat-value">${sessions.length}</span>
+            </div>
+        </div>`;
+
+        // Top 5 consumers
+        const top5 = sessionUsage.slice(0, 5);
+        if (top5.length && top5.some(s => s.tokens > 0)) {
+            html += '<div class="building-section">';
+            html += '<div class="building-section-title">TOP TOKEN CONSUMERS</div>';
+
+            top5.forEach((s, i) => {
+                const pct = maxTokens > 0 ? (s.tokens / maxTokens * 100) : 0;
+                const barColors = ['var(--green)', 'var(--gold-bright)', 'var(--blue)', 'var(--purple)', 'var(--yellow)'];
+                html += `<div class="usage-row">
+                    <span class="usage-label" title="${this._escapeHtml(s.label)}">${i + 1}. ${this._escapeHtml(s.label.substring(0, 20))}</span>
+                    <div class="usage-bar-container">
+                        <div class="usage-bar" style="width:${pct}%;background:${barColors[i % barColors.length]}"></div>
+                    </div>
+                    <span class="usage-value">${s.tokens.toLocaleString()}</span>
+                </div>`;
+            });
+
+            html += '</div>';
+        } else {
+            html += '<div class="building-section"><div class="building-empty">No token usage data available yet.</div></div>';
+        }
+
+        if (bodyEl) bodyEl.innerHTML = html;
+    }
+
+    async showSkillsModal() {
+        const titleEl = document.getElementById('buildingModalTitle');
+        const bodyEl = document.getElementById('buildingModalBody');
+        const modal = document.getElementById('buildingModal');
+
+        if (titleEl) titleEl.textContent = '🏰 BARRACKS — Skills & APIs';
+        if (bodyEl) bodyEl.innerHTML = '<div class="building-empty">Loading skills...</div>';
+        modal?.classList.remove('hidden');
+
+        try {
+            const config = await this._fetchGatewayConfig();
+            const skillEntries = config?.skills?.entries || {};
+
+            const skillDisplayNames = {
+                'sag': 'ElevenLabs TTS',
+                'openai-image-gen': 'OpenAI Images',
+                'openai-whisper-api': 'OpenAI Whisper',
+                'nano-banana-pro': 'Google Gemini',
+                'brave-search': 'Brave Search',
+                'google-search': 'Google Search',
+                'replicate': 'Replicate AI',
+                'stability': 'Stability AI',
+                'anthropic': 'Anthropic API',
+                'openai': 'OpenAI API',
+                'deepseek': 'DeepSeek',
+                'groq': 'Groq',
+                'perplexity': 'Perplexity',
+                'mistral': 'Mistral AI',
+                'cohere': 'Cohere',
+            };
+
+            const entries = Object.entries(skillEntries);
+            if (!entries.length) {
+                if (bodyEl) bodyEl.innerHTML = '<div class="building-empty">No skills configured. Add them in Moltbot config.</div>';
+                return;
+            }
+
+            let html = `<div class="building-section">
+                <div class="building-stat">
+                    <span class="building-stat-label">Total Skills</span>
+                    <span class="building-stat-value">${entries.length}</span>
+                </div>
+                <div class="building-stat">
+                    <span class="building-stat-label">Configured</span>
+                    <span class="building-stat-value">${entries.filter(([, v]) => !!v.apiKey).length} / ${entries.length}</span>
+                </div>
+            </div>`;
+
+            html += '<div class="building-section">';
+            html += '<div class="building-section-title">INSTALLED SKILLS</div>';
+
+            entries.forEach(([key, val]) => {
+                const hasKey = !!val.apiKey;
+                const displayName = skillDisplayNames[key] || key.charAt(0).toUpperCase() + key.slice(1);
+
+                html += `<div class="skill-row">
+                    <div>
+                        <span class="skill-name">${this._escapeHtml(displayName)}</span>
+                        <span class="skill-key">${this._escapeHtml(key)}</span>
+                    </div>
+                    <span class="config-badge ${hasKey ? 'ok' : 'off'}">${hasKey ? '✅ CONFIGURED' : '❌ NO KEY'}</span>
+                </div>`;
+            });
+
+            html += '</div>';
+            if (bodyEl) bodyEl.innerHTML = html;
+
+        } catch (e) {
+            if (bodyEl) bodyEl.innerHTML = `<div class="building-empty">❌ Failed to load skills: ${this._escapeHtml(e.message)}</div>`;
+        }
+    }
+
+    // ========================================
+    // CHANNEL STATUS INDICATORS
+    // ========================================
+
+    async loadChannelStatus() {
+        try {
+            const config = await this._fetchGatewayConfig();
+            const channels = config?.channels || {};
+            const container = document.getElementById('channelIndicators');
+            if (!container) return;
+
+            const channelAbbrev = {
+                'telegram': 'TG',
+                'whatsapp': 'WA',
+                'slack': 'SL',
+                'discord': 'DC',
+                'signal': 'SIG',
+                'webchat': 'WEB',
+                'matrix': 'MTX',
+                'irc': 'IRC',
+                'sms': 'SMS',
+                'email': 'EM',
+            };
+
+            container.innerHTML = '';
+
+            for (const [name, ch] of Object.entries(channels)) {
+                const enabled = ch.enabled !== false;
+                const abbrev = channelAbbrev[name.toLowerCase()] || name.substring(0, 3).toUpperCase();
+                const dot = document.createElement('span');
+                dot.className = `channel-dot ${enabled ? 'enabled' : 'disabled'}`;
+                dot.title = `${name.charAt(0).toUpperCase() + name.slice(1)}: ${enabled ? 'Connected' : 'Disabled'}`;
+                dot.textContent = `${enabled ? '🟢' : '🔴'} ${abbrev}`;
+                container.appendChild(dot);
+            }
+        } catch (e) {
+            console.warn('Failed to load channel status:', e.message);
+        }
+    }
+
+    _escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
     }
 
     animate() {
@@ -2179,7 +2511,7 @@ class IsometricWorld {
         const worldX = (mouseX - this.canvas.width / 2 - this.camera.x) / this.camera.zoom;
         const worldY = (mouseY - 100 - this.camera.y) / this.camera.zoom;
         
-        // Check each agent
+        // Check each agent first (agents are on top)
         for (const agent of this.agents) {
             const pos = this.toScreen(agent.x, agent.y);
             const dist = Math.sqrt(
@@ -2195,6 +2527,27 @@ class IsometricWorld {
                     if (session) {
                         window.moltcraftApp.selectSession(session);
                     }
+                }
+                return;
+            }
+        }
+
+        // Check if clicked on a building
+        for (const building of this.buildings) {
+            const bPos = this.toScreen(
+                building.x + building.width / 2,
+                building.y + building.height / 2
+            );
+            // Use generous click radius based on building size
+            const clickRadius = Math.max(building.width, building.height) * 20;
+            const dist = Math.sqrt(
+                Math.pow(worldX - bPos.x, 2) +
+                Math.pow(worldY - (bPos.y - 60), 2)  // offset up since buildings render upward
+            );
+            if (dist < clickRadius) {
+                sfx.click();
+                if (window.moltcraftApp) {
+                    window.moltcraftApp.showBuildingModal(building.type);
                 }
                 return;
             }

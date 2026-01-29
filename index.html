@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⛏️ MOLTCRAFT - Agent Dashboard</title>
-    <link rel="stylesheet" href="css/style.css?v=27">
+    <link rel="stylesheet" href="css/style.css?v=28">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -49,7 +49,7 @@ window.onerror = function(msg, url, line, col, err) {
     <div id="topBar" class="top-bar">
         <div class="top-bar-left">
             <span class="title pixel-title">⛏️ MOLTCRAFT</span>
-            <button id="newQuestBtn" class="quest-btn">⚔️ NEW QUEST</button>
+            <!-- Removed: NEW QUEST button — agents are spawned via chat -->
         </div>
         <div class="top-bar-center">
             <span class="token-count">⬡ <span id="tokenCount">0</span></span>
@@ -68,6 +68,7 @@ window.onerror = function(msg, url, line, col, err) {
         <div class="top-bar-right">
             <button id="settingsBtn" class="mute-btn" title="Settings">⚙️</button>
             <button id="muteBtn" class="mute-btn" title="Toggle Sound">🔊</button>
+            <div id="channelIndicators" class="channel-indicators"></div>
             <span id="onlineStatus" class="status-badge online">ONLINE</span>
         </div>
     </div>
@@ -141,8 +142,6 @@ window.onerror = function(msg, url, line, col, err) {
             </div>
         </div>
         <div class="panel-right">
-            <button class="action-btn" id="viewHistoryBtn" title="View History">📋</button>
-            <button class="action-btn" id="refreshBtn" title="Refresh">🔄</button>
         </div>
     </div>
 
@@ -235,9 +234,23 @@ window.onerror = function(msg, url, line, col, err) {
         </div>
     </div>
 
+    <!-- Building Modal (shared for all buildings) -->
+    <div id="buildingModal" class="modal hidden">
+        <div class="modal-content" style="width:600px;max-height:80vh;display:flex;flex-direction:column;">
+            <div class="modal-header">
+                <h2 class="pixel-title" id="buildingModalTitle">Building</h2>
+            </div>
+            <div class="modal-body" id="buildingModalBody" style="overflow-y:auto;flex:1;">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="document.getElementById('buildingModal').classList.add('hidden')">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notifications Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <script src="js/app.js?v=27"></script>
+    <script src="js/app.js?v=28"></script>
 </body>
 </html>

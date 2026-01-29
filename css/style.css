@@ -1283,3 +1283,211 @@ body.panel-open .main-container {
     font-family: 'Press Start 2P', monospace;
     font-size: 7px;
 }
+
+/* ========================================
+   CHANNEL INDICATORS (Top Bar)
+   ======================================== */
+
+.channel-indicators {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.channel-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 6px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    border: 1px solid;
+    cursor: default;
+    text-transform: uppercase;
+}
+
+.channel-dot.enabled {
+    color: var(--green);
+    border-color: var(--green);
+    background: rgba(74, 222, 128, 0.1);
+}
+
+.channel-dot.disabled {
+    color: #666;
+    border-color: #444;
+    background: rgba(100, 100, 100, 0.1);
+}
+
+/* ========================================
+   BUILDING MODAL CONTENT
+   ======================================== */
+
+.building-section {
+    margin-bottom: 16px;
+}
+
+.building-section-title {
+    color: var(--gold);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(200, 168, 50, 0.3);
+}
+
+.building-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(200, 168, 50, 0.15);
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.building-stat-label {
+    color: var(--text-secondary);
+    font-weight: bold;
+}
+
+.building-stat-value {
+    color: var(--gold-bright);
+    font-family: monospace;
+    font-weight: bold;
+}
+
+/* Cron job rows */
+.cron-job-row {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(200, 168, 50, 0.15);
+    margin-bottom: 4px;
+    gap: 4px;
+}
+
+.cron-job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cron-job-name {
+    color: var(--text-primary);
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.cron-job-badge {
+    padding: 2px 6px;
+    font-size: 9px;
+    font-weight: bold;
+    border: 1px solid;
+}
+
+.cron-job-badge.enabled {
+    color: var(--green);
+    border-color: var(--green);
+    background: rgba(74, 222, 128, 0.1);
+}
+
+.cron-job-badge.disabled {
+    color: var(--red);
+    border-color: var(--red);
+    background: rgba(248, 113, 113, 0.1);
+}
+
+.cron-job-details {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+.cron-job-details span {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+/* Token usage bars */
+.usage-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(200, 168, 50, 0.15);
+    margin-bottom: 4px;
+    font-size: 11px;
+}
+
+.usage-label {
+    color: var(--text-primary);
+    font-weight: bold;
+    width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.usage-bar-container {
+    flex: 1;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(200, 168, 50, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.usage-bar {
+    height: 100%;
+    background: var(--green);
+    border-radius: 4px;
+    transition: width 0.3s;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
+}
+
+.usage-value {
+    color: var(--gold-bright);
+    font-family: monospace;
+    font-weight: bold;
+    width: 70px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Skill rows */
+.skill-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(200, 168, 50, 0.15);
+    margin-bottom: 4px;
+}
+
+.skill-name {
+    color: var(--text-primary);
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.skill-key {
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-family: monospace;
+}
+
+.building-empty {
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+}
