@@ -207,10 +207,17 @@ class VoiceEngine {
             const saved = localStorage.getItem('moltcraft_voice_settings');
             if (saved) {
                 const s = JSON.parse(saved);
-                this.autoSpeak = s.autoSpeak || false;
-                this.autoSpeakToasts = s.autoSpeakToasts || false;
+                this.autoSpeak = s.autoSpeak !== false; // default true
+                this.autoSpeakToasts = s.autoSpeakToasts !== false; // default true
+            } else {
+                // First time — enabled by default
+                this.autoSpeak = true;
+                this.autoSpeakToasts = true;
             }
-        } catch (e) {}
+        } catch (e) {
+            this.autoSpeak = true;
+            this.autoSpeakToasts = true;
+        }
     }
 
     saveSettings() {
