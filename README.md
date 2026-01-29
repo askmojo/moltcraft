@@ -6,6 +6,8 @@ Turn your AI agents into a living pixel world — a visual dashboard for [Moltbo
 ![npm](https://img.shields.io/npm/v/@ask-mojo/moltcraft)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
 
+![Moltcraft Dashboard](screenshot.jpg)
+
 ## What is this?
 
 Moltcraft is an isometric pixel-art dashboard that connects to your Moltbot gateway. Your AI agents become characters that walk, mine tokens, and complete tasks — all in real-time.
