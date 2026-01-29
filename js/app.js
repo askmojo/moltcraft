@@ -742,6 +742,10 @@ class MoltcraftApp {
     selectSession(session) {
         this.selectedSession = session;
         sfx.selectAgent();
+        // Immediately show loading in chat
+        const chatContent = document.getElementById('chatMessages');
+        if (chatContent) chatContent.innerHTML = '<div class="chat-empty">Loading chat for ' + (session.label || session.key || 'agent') + '...</div>';
+        this._lastChatMsgCount = 0;
         this.updateUI();
         this.updateBottomPanel();
         this.loadChatHistory(); // Load chat when selecting
@@ -1183,6 +1187,8 @@ class MoltcraftApp {
             this.displayChat(messages);
         } catch (error) {
             console.error('Failed to load chat:', error);
+            const chatContent = document.getElementById('chatMessages');
+            if (chatContent) chatContent.innerHTML = '<div class="chat-empty">⚠️ Chat error: ' + error.message + '</div>';
         }
     }
 
