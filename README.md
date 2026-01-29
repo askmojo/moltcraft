@@ -108,7 +108,7 @@ Moltcraft supports voice input and output:
 
 ## Links
 
-- 🌐 [Landing page](https://moltcraft.pages.dev)
+- 🌐 [Product page](https://moltcraft.pages.dev)
 - 📦 [npm package](https://www.npmjs.com/package/@ask-mojo/moltcraft)
 - 📖 [Moltbot docs](https://docs.molt.bot)
 - 💬 [Discord community](https://discord.gg/clawd)
