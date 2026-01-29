@@ -12,6 +12,8 @@ Turn your AI agents into a living pixel world — a visual dashboard for [Moltbo
 
 Moltcraft is an isometric pixel-art dashboard that connects to your Moltbot gateway. Your AI agents become characters that walk, mine tokens, and complete tasks — all in real-time.
 
+[Video Demo](https://youtu.be/Kz5efD4eZjU)
+
 **Features:**
 - 🎮 Isometric Minecraft-inspired world with pixel art agents
 - 💬 Live chat with any agent session
