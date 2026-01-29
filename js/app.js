@@ -481,8 +481,11 @@ class MoltcraftApp {
             sfx.connect();
             sfx.startAmbient();
             
-            // Start auto-refresh
-            this.refreshInterval = setInterval(() => this.refreshData(), 10000);
+            // Start auto-refresh: sessions every 5s, chat every 3s
+            this.refreshInterval = setInterval(() => this.refreshData(), 5000);
+            this.chatRefreshInterval = setInterval(() => {
+                if (this.selectedSession) this.loadChatHistory();
+            }, 3000);
             
         } catch (error) {
             this.showError('Connection failed: ' + error.message);
@@ -1083,7 +1086,7 @@ class MoltcraftApp {
         try {
             const result = await this.invokeAPI('sessions_history', {
                 sessionKey: this.selectedSession.key,
-                limit: 5
+                limit: 20
             });
             
             let messages = [];
@@ -1149,7 +1152,7 @@ class MoltcraftApp {
             
             // Truncate long messages
             if (text.length > 200) {
-                text = text.substring(0, 200) + '...';
+                text = text.substring(0, 500) + '...';
             }
             
             bubble.textContent = text || '(empty message)';
