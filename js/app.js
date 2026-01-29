@@ -530,6 +530,9 @@ class MoltcraftApp {
             // Load ElevenLabs key from Moltbot config
             this.checkElevenLabsFromMoltbot();
             
+            // Check if onboarding is needed
+            this.checkOnboarding();
+            
             // Start auto-refresh: sessions every 5s, chat every 3s
             this.refreshInterval = setInterval(() => this.refreshData(), 5000);
             this.chatRefreshInterval = setInterval(() => {
@@ -1107,6 +1110,253 @@ class MoltcraftApp {
         }
     }
 
+    // ========================================
+    // ONBOARDING SYSTEM
+    // ========================================
+
+    async checkOnboarding() {
+        try {
+            const res = await fetch(`${this.gatewayUrl}/api/gateway/config`, {
+                headers: { 'Authorization': `Bearer ${this.gatewayToken}` }
+            });
+            const data = await res.json();
+            const config = data.result?.config || data.config || data;
+
+            // Detect fresh install: no channels configured or no API auth
+            const channels = config.channels || {};
+            const hasChannels = Object.values(channels).some(ch => ch.enabled !== false && (ch.botToken || ch.allowFrom?.length));
+            const hasAuth = config.auth?.profiles && Object.keys(config.auth.profiles).length > 0;
+            const onboardingDone = localStorage.getItem('moltcraft_onboarding_done');
+
+            if (!hasChannels && !onboardingDone) {
+                this.startOnboarding(config);
+            }
+        } catch (e) {
+            console.warn('Onboarding check failed:', e);
+        }
+    }
+
+    startOnboarding(currentConfig) {
+        this.onboarding = {
+            active: true,
+            step: 0,
+            answers: {},
+            config: currentConfig
+        };
+
+        // Show chat sidebar for onboarding
+        const chatPanel = document.getElementById('chatSidebar');
+        chatPanel.classList.remove('hidden');
+
+        this.onboardingSteps = [
+            {
+                question: "👋 Welcome to Moltcraft! I'm your setup assistant. Let's get your Moltbot configured.\n\nFirst, what's your name?",
+                key: 'userName',
+            },
+            {
+                question: "Nice to meet you, {userName}! 🎮\n\nWhich AI provider do you want to use?\n\n1️⃣ Anthropic (Claude) — recommended\n2️⃣ OpenAI (GPT)\n\nType 1 or 2:",
+                key: 'provider',
+                validate: v => ['1', '2'].includes(v.trim()),
+                transform: v => v.trim() === '1' ? 'anthropic' : 'openai'
+            },
+            {
+                question: "Great choice! Now paste your {provider} API key:\n\n(It will be stored securely in your Moltbot config)",
+                key: 'apiKey',
+                validate: v => v.trim().length > 10,
+                sensitive: true
+            },
+            {
+                question: "🧠 Which model do you want as your primary?\n\n1️⃣ Claude Opus 4.5 — most capable\n2️⃣ Claude Sonnet 4.5 — fast & smart\n3️⃣ Claude Haiku 4.5 — fastest & cheapest\n\nType 1, 2, or 3:",
+                key: 'model',
+                validate: v => ['1', '2', '3'].includes(v.trim()),
+                transform: v => ({ '1': 'anthropic/claude-opus-4-5', '2': 'anthropic/claude-sonnet-4-5', '3': 'anthropic/claude-haiku-4-5' })[v.trim()],
+                condition: () => this.onboarding.answers.provider === 'anthropic'
+            },
+            {
+                question: "📱 Do you want to connect a messaging channel?\n\n1️⃣ Telegram — paste your bot token\n2️⃣ Skip for now\n\nType 1 or 2:",
+                key: 'channelChoice',
+                validate: v => ['1', '2'].includes(v.trim()),
+            },
+            {
+                question: "Paste your Telegram bot token:\n(Get one from @BotFather on Telegram)",
+                key: 'telegramToken',
+                validate: v => v.includes(':'),
+                condition: () => this.onboarding.answers.channelChoice === '1'
+            },
+            {
+                question: "What's your Telegram user ID?\n(Send /start to @userinfobot on Telegram to find it)",
+                key: 'telegramUserId',
+                validate: v => /^\d+$/.test(v.trim()),
+                transform: v => parseInt(v.trim()),
+                condition: () => this.onboarding.answers.channelChoice === '1'
+            },
+            {
+                question: "🏠 Where should your agent workspace be?\n\nDefault: ~/clawd\n\n(Press Enter to keep default, or type a path):",
+                key: 'workspace',
+                transform: v => v.trim() || '/home/' + (this.onboarding.answers.userName || 'user').toLowerCase() + '/clawd'
+            }
+        ];
+
+        this.showOnboardingStep();
+    }
+
+    showOnboardingStep() {
+        if (!this.onboarding?.active) return;
+
+        // Skip steps with unmet conditions
+        while (this.onboarding.step < this.onboardingSteps.length) {
+            const step = this.onboardingSteps[this.onboarding.step];
+            if (step.condition && !step.condition()) {
+                this.onboarding.step++;
+                continue;
+            }
+            break;
+        }
+
+        // All done?
+        if (this.onboarding.step >= this.onboardingSteps.length) {
+            this.finishOnboarding();
+            return;
+        }
+
+        const step = this.onboardingSteps[this.onboarding.step];
+        let question = step.question;
+
+        // Replace placeholders with answers
+        for (const [key, val] of Object.entries(this.onboarding.answers)) {
+            question = question.replace(`{${key}}`, val);
+        }
+
+        // Add to chat
+        const chatContent = document.getElementById('chatMessages');
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble chat-assistant';
+        bubble.textContent = question;
+        chatContent.appendChild(bubble);
+        chatContent.scrollTop = chatContent.scrollHeight;
+
+        // Speak the question
+        voice.speakAgentResponse(question, 'onboarding');
+
+        // Set up input handler for onboarding
+        this.onboarding.waitingForInput = true;
+    }
+
+    handleOnboardingInput(text) {
+        if (!this.onboarding?.waitingForInput) return false;
+
+        const step = this.onboardingSteps[this.onboarding.step];
+
+        // Validate
+        if (step.validate && !step.validate(text)) {
+            const chatContent = document.getElementById('chatMessages');
+            const err = document.createElement('div');
+            err.className = 'chat-bubble chat-assistant';
+            err.textContent = '⚠️ Invalid input. Please try again.';
+            chatContent.appendChild(err);
+            chatContent.scrollTop = chatContent.scrollHeight;
+            return true;
+        }
+
+        // Show user message
+        const chatContent = document.getElementById('chatMessages');
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble chat-user';
+        bubble.textContent = step.sensitive ? '••••••••' : text;
+        chatContent.appendChild(bubble);
+        chatContent.scrollTop = chatContent.scrollHeight;
+
+        // Store answer
+        const value = step.transform ? step.transform(text) : text.trim();
+        this.onboarding.answers[step.key] = value;
+
+        // Next step
+        this.onboarding.step++;
+        this.onboarding.waitingForInput = false;
+
+        setTimeout(() => this.showOnboardingStep(), 500);
+        return true;
+    }
+
+    async finishOnboarding() {
+        const answers = this.onboarding.answers;
+        const chatContent = document.getElementById('chatMessages');
+
+        // Show applying message
+        const applying = document.createElement('div');
+        applying.className = 'chat-bubble chat-assistant';
+        applying.textContent = '⚙️ Applying your configuration...';
+        chatContent.appendChild(applying);
+        chatContent.scrollTop = chatContent.scrollHeight;
+
+        try {
+            // Build config patch
+            const patch = {};
+
+            // Model
+            if (answers.model) {
+                patch.agents = {
+                    defaults: {
+                        model: { primary: answers.model },
+                        workspace: answers.workspace || '/home/user/clawd'
+                    }
+                };
+            }
+
+            // Telegram channel
+            if (answers.telegramToken && answers.telegramUserId) {
+                patch.channels = {
+                    telegram: {
+                        enabled: true,
+                        botToken: answers.telegramToken,
+                        dmPolicy: 'allowlist',
+                        allowFrom: [answers.telegramUserId],
+                        groupPolicy: 'allowlist'
+                    }
+                };
+                patch.plugins = { entries: { telegram: { enabled: true } } };
+            }
+
+            // Apply config via gateway
+            await fetch(`${this.gatewayUrl}/api/gateway/config`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.gatewayToken}`
+                },
+                body: JSON.stringify(patch)
+            });
+
+            // Mark onboarding done
+            localStorage.setItem('moltcraft_onboarding_done', Date.now().toString());
+
+            const done = document.createElement('div');
+            done.className = 'chat-bubble chat-assistant';
+            done.textContent = `🎉 All set, ${answers.userName}! Your Moltbot is configured.\n\n` +
+                `✅ Model: ${answers.model || 'default'}\n` +
+                (answers.telegramToken ? '✅ Telegram connected\n' : '') +
+                `✅ Workspace: ${answers.workspace || 'default'}\n\n` +
+                'Your agents are ready. Spawn your first quest with ⚔️ NEW QUEST!';
+            chatContent.appendChild(done);
+            chatContent.scrollTop = chatContent.scrollHeight;
+
+            voice.speakAgentResponse('Setup complete! Your Moltbot is ready. Spawn your first quest!', 'onboarding');
+
+            this.onboarding.active = false;
+
+            // Refresh to pick up new config
+            setTimeout(() => this.refreshData(), 2000);
+
+        } catch (e) {
+            const err = document.createElement('div');
+            err.className = 'chat-bubble chat-assistant';
+            err.textContent = '❌ Failed to apply config: ' + e.message + '\nYou can configure manually in Moltbot.';
+            chatContent.appendChild(err);
+            chatContent.scrollTop = chatContent.scrollHeight;
+            this.onboarding.active = false;
+        }
+    }
+
     showNewQuestModal() {
         const modal = document.getElementById('newQuestModal');
         const input = document.getElementById('questTaskInput');
@@ -1258,8 +1508,15 @@ class MoltcraftApp {
     async sendMessage() {
         const input = document.getElementById('messageInput');
         const message = input.value.trim();
-        
-        if (!message || !this.selectedSession || !this.selectedSession.key) return;
+        if (!message) return;
+
+        // Handle onboarding input
+        if (this.onboarding?.active && this.handleOnboardingInput(message)) {
+            input.value = '';
+            return;
+        }
+
+        if (!this.selectedSession || !this.selectedSession.key) return;
         sfx.sendMessage();
         
         try {
