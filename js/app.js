@@ -178,13 +178,26 @@ const sfx = new SoundEngine();
 class VoiceEngine {
     constructor() {
         this.elevenLabsKey = '';
-        this.defaultVoiceId = '21m00Tcm4TlvDq8ikWAM'; // Rachel
         this.autoSpeak = false;
         this.autoSpeakToasts = false;
         this.speaking = false;
         this.audioQueue = [];
         this.recognition = null;
         this.isRecording = false;
+        this.agentVoiceMap = {}; // sessionKey -> voiceId
+
+        // ElevenLabs default voices — diverse set for auto-assignment
+        this.voicePool = [
+            { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', desc: 'Calm female' },
+            { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', desc: 'Warm male' },
+            { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella', desc: 'Soft female' },
+            { id: 'MF3mGyEYCl7XYWbV9V6O', name: 'Elli', desc: 'Young female' },
+            { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh', desc: 'Deep male' },
+            { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold', desc: 'Strong male' },
+            { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', desc: 'Narrator male' },
+            { id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam', desc: 'Raspy male' },
+        ];
+
         this.loadSettings();
         this.initSTT();
     }
@@ -194,7 +207,6 @@ class VoiceEngine {
             const saved = localStorage.getItem('moltcraft_voice_settings');
             if (saved) {
                 const s = JSON.parse(saved);
-                this.defaultVoiceId = s.defaultVoiceId || '21m00Tcm4TlvDq8ikWAM';
                 this.autoSpeak = s.autoSpeak || false;
                 this.autoSpeakToasts = s.autoSpeakToasts || false;
             }
@@ -203,10 +215,38 @@ class VoiceEngine {
 
     saveSettings() {
         localStorage.setItem('moltcraft_voice_settings', JSON.stringify({
-            defaultVoiceId: this.defaultVoiceId,
             autoSpeak: this.autoSpeak,
             autoSpeakToasts: this.autoSpeakToasts
         }));
+    }
+
+    // Auto-assign a voice to an agent based on session key hash
+    getVoiceForAgent(sessionKey) {
+        if (!sessionKey) return this.voicePool[0];
+        if (this.agentVoiceMap[sessionKey]) return this.agentVoiceMap[sessionKey];
+
+        // Simple hash to pick a consistent voice
+        let hash = 0;
+        for (let i = 0; i < sessionKey.length; i++) {
+            hash = ((hash << 5) - hash) + sessionKey.charCodeAt(i);
+            hash |= 0;
+        }
+        const idx = Math.abs(hash) % this.voicePool.length;
+        this.agentVoiceMap[sessionKey] = this.voicePool[idx];
+        return this.voicePool[idx];
+    }
+
+    // Build voice roster for settings display
+    getVoiceRoster(sessions) {
+        if (!sessions?.length) return [];
+        return sessions.map(s => {
+            const key = s.key || s.sessionKey || sessionUID(s);
+            const v = this.getVoiceForAgent(key);
+            return {
+                label: s.label || key,
+                voice: v
+            };
+        });
     }
 
     get isConfigured() {
@@ -333,10 +373,11 @@ class VoiceEngine {
         });
     }
 
-    // Auto-speak agent response if enabled
-    async speakAgentResponse(text) {
+    // Auto-speak agent response if enabled — uses agent-specific voice
+    async speakAgentResponse(text, sessionKey) {
         if (this.autoSpeak && this.isConfigured && text) {
-            await this.speak(text);
+            const v = this.getVoiceForAgent(sessionKey);
+            await this.speak(text, v.id);
         }
     }
 
@@ -869,11 +910,11 @@ class MoltcraftApp {
 
     showSettings() {
         const modal = document.getElementById('settingsModal');
-        document.getElementById('elevenLabsVoice').value = voice.defaultVoiceId;
         document.getElementById('autoSpeakEnabled').checked = voice.autoSpeak;
         document.getElementById('autoSpeakToasts').checked = voice.autoSpeakToasts;
         modal.classList.remove('hidden');
         this.checkElevenLabsFromMoltbot();
+        this.updateVoiceRoster();
 
         // Tab switching
         modal.querySelectorAll('.settings-tab').forEach(tab => {
@@ -891,8 +932,22 @@ class MoltcraftApp {
         document.getElementById('settingsModal').classList.add('hidden');
     }
 
+    updateVoiceRoster() {
+        const el = document.getElementById('voiceRoster');
+        const roster = voice.getVoiceRoster(this.sessions);
+        if (!roster.length) {
+            el.innerHTML = '<p class="settings-hint">No agents connected yet.</p>';
+            return;
+        }
+        el.innerHTML = roster.map(r =>
+            `<div class="config-row">
+                <span class="config-label">${r.label.slice(0, 30)}</span>
+                <span class="config-value">🎭 ${r.voice.name} — ${r.voice.desc}</span>
+            </div>`
+        ).join('');
+    }
+
     saveSettings() {
-        voice.defaultVoiceId = document.getElementById('elevenLabsVoice').value.trim() || '21m00Tcm4TlvDq8ikWAM';
         voice.autoSpeak = document.getElementById('autoSpeakEnabled').checked;
         voice.autoSpeakToasts = document.getElementById('autoSpeakToasts').checked;
         voice.saveSettings();
@@ -1153,7 +1208,7 @@ class MoltcraftApp {
                 }
                 if (!spText && typeof newest.content === 'string') spText = newest.content;
             }
-            if (spText) voice.speakAgentResponse(spText);
+            if (spText) voice.speakAgentResponse(spText, this.selectedSession?.key);
         }
         this._lastChatMsgCount = assistantMsgs.length;
         
