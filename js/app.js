@@ -194,7 +194,6 @@ class VoiceEngine {
             const saved = localStorage.getItem('moltcraft_voice_settings');
             if (saved) {
                 const s = JSON.parse(saved);
-                this.elevenLabsKey = s.elevenLabsKey || '';
                 this.defaultVoiceId = s.defaultVoiceId || '21m00Tcm4TlvDq8ikWAM';
                 this.autoSpeak = s.autoSpeak || false;
                 this.autoSpeakToasts = s.autoSpeakToasts || false;
@@ -204,7 +203,6 @@ class VoiceEngine {
 
     saveSettings() {
         localStorage.setItem('moltcraft_voice_settings', JSON.stringify({
-            elevenLabsKey: this.elevenLabsKey,
             defaultVoiceId: this.defaultVoiceId,
             autoSpeak: this.autoSpeak,
             autoSpeakToasts: this.autoSpeakToasts
@@ -480,6 +478,9 @@ class MoltcraftApp {
             sfx.init();
             sfx.connect();
             sfx.startAmbient();
+            
+            // Load ElevenLabs key from Moltbot config
+            this.checkElevenLabsFromMoltbot();
             
             // Start auto-refresh: sessions every 5s, chat every 3s
             this.refreshInterval = setInterval(() => this.refreshData(), 5000);
@@ -868,11 +869,11 @@ class MoltcraftApp {
 
     showSettings() {
         const modal = document.getElementById('settingsModal');
-        document.getElementById('elevenLabsKey').value = voice.elevenLabsKey;
         document.getElementById('elevenLabsVoice').value = voice.defaultVoiceId;
         document.getElementById('autoSpeakEnabled').checked = voice.autoSpeak;
         document.getElementById('autoSpeakToasts').checked = voice.autoSpeakToasts;
         modal.classList.remove('hidden');
+        this.checkElevenLabsFromMoltbot();
 
         // Tab switching
         modal.querySelectorAll('.settings-tab').forEach(tab => {
@@ -891,13 +892,36 @@ class MoltcraftApp {
     }
 
     saveSettings() {
-        voice.elevenLabsKey = document.getElementById('elevenLabsKey').value.trim();
         voice.defaultVoiceId = document.getElementById('elevenLabsVoice').value.trim() || '21m00Tcm4TlvDq8ikWAM';
         voice.autoSpeak = document.getElementById('autoSpeakEnabled').checked;
         voice.autoSpeakToasts = document.getElementById('autoSpeakToasts').checked;
         voice.saveSettings();
         this.hideSettings();
-        this.showToast('✅ Voice settings saved', 'success');
+        this.showToast('✅ Settings saved', 'success');
+    }
+
+    async checkElevenLabsFromMoltbot() {
+        const statusEl = document.getElementById('elevenLabsStatus');
+        try {
+            const res = await fetch(`${this.gatewayUrl}/api/gateway/config`, {
+                headers: { 'Authorization': `Bearer ${this.gatewayToken}` }
+            });
+            const data = await res.json();
+            const config = data.result?.config || data.config || data;
+            const sagKey = config.skills?.entries?.sag?.apiKey;
+            if (sagKey) {
+                voice.elevenLabsKey = sagKey;
+                voice.saveSettings();
+                statusEl.innerHTML = `<span class="config-label">ElevenLabs (from Moltbot)</span>
+                    <span class="config-badge ok">✅ CONFIGURED</span>`;
+            } else {
+                statusEl.innerHTML = `<span class="config-label">ElevenLabs (from Moltbot)</span>
+                    <span class="config-badge off">❌ NOT CONFIGURED — add "sag" skill in Moltbot</span>`;
+            }
+        } catch (e) {
+            statusEl.innerHTML = `<span class="config-label">ElevenLabs</span>
+                <span class="config-badge off">❌ Cannot reach gateway</span>`;
+        }
     }
 
     async loadMoltbotConfig() {
