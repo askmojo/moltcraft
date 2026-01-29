@@ -882,6 +882,16 @@ class IsometricWorld {
         this.agents.push(agent);
     }
 
+    hashCode(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const chr = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + chr;
+            hash |= 0;
+        }
+        return hash;
+    }
+
     selectAgent(id) {
         this.selectedAgentId = id;
     }
@@ -1470,18 +1480,50 @@ class IsometricWorld {
             ctx.shadowBlur = 0;
         }
 
-        // Body color
-        let bodyColor, hatColor;
-        if (agent.type === 'main') {
-            bodyColor = '#4488ff';
-            hatColor = '#ffd700'; // Gold crown
-        } else if (agent.type === 'subagent') {
-            bodyColor = '#44ff44';
-            hatColor = '#888888'; // Iron helmet
-        } else {
-            bodyColor = '#aa44ff';
-            hatColor = '#8844ff'; // Wizard hat
+        // === Unique agent appearance based on seeded hash ===
+        if (!agent.appearance) {
+            // Generate stable appearance from agent id
+            const hash = this.hashCode(agent.id);
+            
+            // Skin tones
+            const skinTones = ['#f0d9b5', '#e8c89e', '#d4a574', '#c68642', '#8d5524', '#ffdbac'];
+            
+            // Shirt/body colors (varied palette)
+            const shirtColors = [
+                '#4488ff', '#44bb44', '#ff6644', '#aa44ff', '#44dddd',
+                '#ff44aa', '#ffaa22', '#8866cc', '#cc4444', '#2299cc',
+                '#66aa44', '#dd6699', '#5577bb', '#bb8833', '#44aa88'
+            ];
+
+            // Hair colors
+            const hairColors = ['#2a1a0a', '#654321', '#ffd700', '#c84', '#f60', '#333', '#a52a2a', '#ddd', '#c00'];
+            
+            // Hair styles: 0=short, 1=spiky, 2=long, 3=mohawk, 4=bald, 5=ponytail, 6=afro
+            const hairStyles = 7;
+
+            // Pants colors
+            const pantsColors = ['#5a4a3a', '#334', '#443322', '#2a3a5a', '#3a2a2a', '#444'];
+
+            // Accessories: 0=none, 1=crown(main only), 2=helmet, 3=bandana, 4=glasses, 5=scarf
+            
+            agent.appearance = {
+                skin: skinTones[Math.abs(hash) % skinTones.length],
+                shirt: shirtColors[Math.abs(hash >> 4) % shirtColors.length],
+                hair: hairColors[Math.abs(hash >> 8) % hairColors.length],
+                hairStyle: Math.abs(hash >> 12) % hairStyles,
+                pants: pantsColors[Math.abs(hash >> 16) % pantsColors.length],
+                accessory: Math.abs(hash >> 20) % 6,
+                eyeStyle: Math.abs(hash >> 24) % 3, // 0=normal, 1=small, 2=wide
+            };
+
+            // Main agent always gets crown
+            if (agent.type === 'main') {
+                agent.appearance.accessory = 1;
+                agent.appearance.shirt = '#4488ff';
+            }
         }
+
+        const app = agent.appearance;
 
         // Walking animation
         const isWalking = agent.walkFrame > 0;
@@ -1489,28 +1531,32 @@ class IsometricWorld {
         const legSwing = isWalking ? (walkCycle === 0 ? -4 : 4) : 0;
 
         // Legs (animated)
-        ctx.fillStyle = '#5a4a3a';
+        ctx.fillStyle = app.pants;
         ctx.fillRect(pos.x - 8, pos.y - 8 + legSwing, 6, 16);
         ctx.fillRect(pos.x + 2, pos.y - 8 - legSwing, 6, 16);
 
-        // Body (larger, with texture)
-        ctx.fillStyle = bodyColor;
+        // Shoes
+        ctx.fillStyle = '#2a1a0a';
+        ctx.fillRect(pos.x - 9, pos.y + 5 + legSwing, 8, 4);
+        ctx.fillRect(pos.x + 1, pos.y + 5 - legSwing, 8, 4);
+
+        // Body
+        ctx.fillStyle = app.shirt;
         ctx.fillRect(pos.x - 10, pos.y - 30, 20, 24);
         
-        // Armor/shirt texture
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.fillRect(pos.x - 8, pos.y - 28, 16, 2);
-        ctx.fillRect(pos.x - 8, pos.y - 20, 16, 2);
-        ctx.fillRect(pos.x - 8, pos.y - 12, 16, 2);
+        // Shirt detail (collar)
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(pos.x - 4, pos.y - 30, 8, 3);
+        // Belt
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(pos.x - 10, pos.y - 10, 20, 3);
 
         // Arms (animated)
-        ctx.fillStyle = '#f0d9b5';
+        ctx.fillStyle = app.skin;
         if (agent.state === 'working') {
-            // Mining animation
             const swing = Math.sin(agent.animFrame * 0.2) * 15;
             ctx.fillRect(pos.x - 16, pos.y - 26 + swing / 2, 6, 18);
             ctx.fillRect(pos.x + 10, pos.y - 24, 6, 16);
-            
             // Pickaxe
             ctx.save();
             ctx.translate(pos.x - 13, pos.y - 28 + swing / 2);
@@ -1521,69 +1567,145 @@ class IsometricWorld {
             ctx.fillRect(-2, 2, 4, 16);
             ctx.restore();
         } else if (isWalking) {
-            // Walking arm swing
             const armSwing = walkCycle === 0 ? -3 : 3;
             ctx.fillRect(pos.x - 16, pos.y - 26 + armSwing, 6, 18);
             ctx.fillRect(pos.x + 10, pos.y - 26 - armSwing, 6, 18);
         } else {
-            // Idle arms
             const sway = Math.sin(agent.animFrame * 0.05) * 2;
             ctx.fillRect(pos.x - 16, pos.y - 26 + sway, 6, 18);
             ctx.fillRect(pos.x + 10, pos.y - 26 - sway, 6, 18);
         }
 
-        // Head (larger)
-        ctx.fillStyle = '#f0d9b5';
+        // Head
+        ctx.fillStyle = app.skin;
         ctx.fillRect(pos.x - 8, pos.y - 50, 16, 16);
 
-        // Face
+        // Eyes (3 styles)
         ctx.fillStyle = '#000';
-        // Eyes
         const blinkFrame = agent.animFrame % 100;
         if (blinkFrame < 95) {
-            ctx.fillRect(pos.x - 5, pos.y - 45, 3, 3);
-            ctx.fillRect(pos.x + 2, pos.y - 45, 3, 3);
+            if (app.eyeStyle === 0) {
+                // Normal eyes
+                ctx.fillRect(pos.x - 5, pos.y - 45, 3, 3);
+                ctx.fillRect(pos.x + 2, pos.y - 45, 3, 3);
+            } else if (app.eyeStyle === 1) {
+                // Small dot eyes
+                ctx.fillRect(pos.x - 4, pos.y - 44, 2, 2);
+                ctx.fillRect(pos.x + 3, pos.y - 44, 2, 2);
+            } else {
+                // Wide eyes
+                ctx.fillRect(pos.x - 6, pos.y - 46, 4, 4);
+                ctx.fillRect(pos.x + 2, pos.y - 46, 4, 4);
+                // Pupils
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(pos.x - 5, pos.y - 45, 2, 2);
+                ctx.fillRect(pos.x + 3, pos.y - 45, 2, 2);
+                ctx.fillStyle = '#000';
+            }
         } else {
-            // Blink
             ctx.fillRect(pos.x - 5, pos.y - 44, 3, 1);
             ctx.fillRect(pos.x + 2, pos.y - 44, 3, 1);
         }
-        // Mouth
-        ctx.fillRect(pos.x - 3, pos.y - 38, 6, 2);
 
-        // Hat/Helmet/Crown
-        if (agent.type === 'main') {
-            // Crown
-            ctx.fillStyle = hatColor;
-            ctx.fillRect(pos.x - 10, pos.y - 56, 20, 6);
+        // Mouth
+        ctx.fillStyle = '#000';
+        if (agent.state === 'working') {
+            // Open mouth (effort)
+            ctx.fillRect(pos.x - 2, pos.y - 38, 4, 3);
+        } else {
+            ctx.fillRect(pos.x - 3, pos.y - 38, 6, 2);
+        }
+
+        // === HAIR (7 styles) ===
+        ctx.fillStyle = app.hair;
+        switch (app.hairStyle) {
+            case 0: // Short flat
+                ctx.fillRect(pos.x - 9, pos.y - 53, 18, 5);
+                ctx.fillRect(pos.x - 9, pos.y - 50, 3, 6);
+                ctx.fillRect(pos.x + 6, pos.y - 50, 3, 6);
+                break;
+            case 1: // Spiky
+                ctx.fillRect(pos.x - 9, pos.y - 53, 18, 4);
+                // Spikes
+                ctx.fillRect(pos.x - 8, pos.y - 58, 3, 5);
+                ctx.fillRect(pos.x - 3, pos.y - 60, 3, 7);
+                ctx.fillRect(pos.x + 2, pos.y - 59, 3, 6);
+                ctx.fillRect(pos.x + 6, pos.y - 56, 3, 3);
+                break;
+            case 2: // Long hair
+                ctx.fillRect(pos.x - 9, pos.y - 53, 18, 5);
+                ctx.fillRect(pos.x - 10, pos.y - 50, 4, 18);
+                ctx.fillRect(pos.x + 6, pos.y - 50, 4, 18);
+                ctx.fillRect(pos.x - 9, pos.y - 53, 3, 20);
+                ctx.fillRect(pos.x + 7, pos.y - 53, 3, 20);
+                break;
+            case 3: // Mohawk
+                ctx.fillRect(pos.x - 2, pos.y - 62, 4, 12);
+                ctx.fillRect(pos.x - 3, pos.y - 60, 6, 3);
+                break;
+            case 4: // Bald (no hair, just a shine)
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.fillRect(pos.x - 4, pos.y - 50, 4, 3);
+                break;
+            case 5: // Ponytail
+                ctx.fillRect(pos.x - 9, pos.y - 53, 18, 5);
+                ctx.fillRect(pos.x + 5, pos.y - 52, 4, 3);
+                ctx.fillRect(pos.x + 8, pos.y - 50, 3, 6);
+                ctx.fillRect(pos.x + 9, pos.y - 45, 3, 10);
+                break;
+            case 6: // Afro
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y - 52, 14, 0, Math.PI * 2);
+                ctx.fill();
+                // Re-draw face on top
+                ctx.fillStyle = app.skin;
+                ctx.fillRect(pos.x - 7, pos.y - 49, 14, 14);
+                break;
+        }
+
+        // === ACCESSORY ===
+        if (app.accessory === 1) {
+            // Crown (main agent)
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(pos.x - 10, pos.y - 56, 20, 5);
             ctx.fillRect(pos.x - 8, pos.y - 62, 4, 6);
             ctx.fillRect(pos.x - 2, pos.y - 62, 4, 6);
             ctx.fillRect(pos.x + 4, pos.y - 62, 4, 6);
-            // Gems
             ctx.fillStyle = '#ff0000';
             ctx.fillRect(pos.x - 6, pos.y - 60, 2, 2);
             ctx.fillRect(pos.x, pos.y - 60, 2, 2);
             ctx.fillRect(pos.x + 6, pos.y - 60, 2, 2);
-        } else if (agent.type === 'subagent') {
-            // Helmet
-            ctx.fillStyle = hatColor;
-            ctx.fillRect(pos.x - 10, pos.y - 56, 20, 8);
-            ctx.fillRect(pos.x - 12, pos.y - 50, 24, 4);
-        } else {
-            // Wizard hat
-            ctx.fillStyle = hatColor;
+        } else if (app.accessory === 2) {
+            // Iron helmet
+            ctx.fillStyle = '#888';
+            ctx.fillRect(pos.x - 10, pos.y - 55, 20, 7);
+            ctx.fillRect(pos.x - 12, pos.y - 50, 24, 3);
+            // Visor slit
+            ctx.fillStyle = '#333';
+            ctx.fillRect(pos.x - 6, pos.y - 53, 12, 2);
+        } else if (app.accessory === 3) {
+            // Bandana
+            ctx.fillStyle = '#c00';
+            ctx.fillRect(pos.x - 9, pos.y - 52, 18, 4);
+            // Tails hanging
+            ctx.fillRect(pos.x + 7, pos.y - 50, 3, 8);
+            ctx.fillRect(pos.x + 9, pos.y - 46, 3, 6);
+        } else if (app.accessory === 4) {
+            // Glasses
+            ctx.fillStyle = '#222';
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(pos.x - 7, pos.y - 47, 6, 5);
+            ctx.strokeRect(pos.x + 1, pos.y - 47, 6, 5);
             ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y - 75);
-            ctx.lineTo(pos.x + 12, pos.y - 50);
-            ctx.lineTo(pos.x - 12, pos.y - 50);
-            ctx.closePath();
-            ctx.fill();
-            ctx.fillRect(pos.x - 14, pos.y - 52, 28, 4);
-            // Stars
-            ctx.fillStyle = '#ffd700';
-            ctx.fillRect(pos.x - 1, pos.y - 65, 2, 2);
-            ctx.fillRect(pos.x - 3, pos.y - 60, 2, 2);
-            ctx.fillRect(pos.x + 2, pos.y - 58, 2, 2);
+            ctx.moveTo(pos.x - 1, pos.y - 45);
+            ctx.lineTo(pos.x + 1, pos.y - 45);
+            ctx.stroke();
+        } else if (app.accessory === 5) {
+            // Scarf
+            ctx.fillStyle = '#e44';
+            ctx.fillRect(pos.x - 10, pos.y - 32, 20, 4);
+            ctx.fillRect(pos.x - 12, pos.y - 30, 6, 10);
         }
 
         // Nametag (floating above)
