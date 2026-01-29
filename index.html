@@ -3,94 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⛏️ MOLTCRAFT - Visual World</title>
+    <title>⛏️ MOLTCRAFT - Agent Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <!-- Connection Overlay -->
-    <div id="connectionOverlay" class="connection-overlay">
-        <div class="minecraft-panel connection-panel">
-            <h1 class="pixel-title">⛏️ JOIN SERVER</h1>
+    <div id="connectionOverlay" class="overlay">
+        <div class="connection-panel">
+            <h1 class="pixel-title">⛏️ MOLTCRAFT</h1>
+            <p class="connection-subtitle">Connect to Gateway Server</p>
             <div class="form-group">
                 <label>Gateway URL</label>
-                <input 
-                    type="text" 
-                    id="gatewayUrl" 
-                    class="minecraft-input"
-                    placeholder="http://localhost:18789"
-                    value="http://localhost:18789"
-                >
+                <input type="text" id="gatewayUrl" placeholder="http://localhost:3050" value="http://localhost:3050">
             </div>
             <div class="form-group">
-                <label>Bearer Token</label>
-                <input 
-                    type="password" 
-                    id="gatewayToken" 
-                    class="minecraft-input"
-                    placeholder="Enter your gateway token"
-                >
+                <label>Token</label>
+                <input type="password" id="gatewayToken" placeholder="Your gateway token">
             </div>
-            <div class="button-group">
-                <button id="connectBtn" class="minecraft-btn primary">JOIN SERVER</button>
+            <div class="button-row">
+                <button id="connectBtn" class="btn-primary">JOIN SERVER</button>
             </div>
+            <div id="connectionError" class="error-message"></div>
         </div>
     </div>
 
-    <!-- World Canvas -->
-    <canvas id="worldCanvas"></canvas>
-
-    <!-- Hover Tooltip -->
-    <div id="tooltip" class="tooltip hidden"></div>
-
-    <!-- Detail Panel (slide from right) -->
-    <div id="detailPanel" class="detail-panel hidden">
-        <div class="detail-header">
-            <div class="detail-title">Agent Details</div>
-            <button class="close-btn" id="closeDetailBtn">✕</button>
+    <!-- Top Status Bar -->
+    <div id="topBar" class="top-bar">
+        <div class="top-bar-left">
+            <span class="title pixel-title">⛏️ MOLTCRAFT</span>
         </div>
-        <div id="detailContent" class="detail-content"></div>
+        <div class="top-bar-center">
+            <span class="token-count">⬡ <span id="tokenCount">0</span></span>
+            <span class="status-badge working">
+                <span id="workingCount">0</span> WORKING
+            </span>
+            <span class="status-badge idle">
+                <span id="idleCount">0</span> IDLE
+            </span>
+            <span class="status-badge waiting">
+                <span id="waitingCount">0</span> WAITING
+            </span>
+        </div>
+        <div class="top-bar-right">
+            <span id="onlineStatus" class="status-badge online">ONLINE</span>
+        </div>
     </div>
 
-    <!-- Hotbar (bottom overlay) -->
-    <div class="hotbar">
-        <div class="hotbar-slot">
-            <div class="slot-icon">⛏️</div>
-            <div class="slot-label">Moltcraft</div>
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Sidebar - Session List -->
+        <div id="leftSidebar" class="left-sidebar">
+            <div class="sidebar-header">
+                <span class="pixel-text">AGENTS</span>
+                <span class="agent-count" id="agentCount">0</span>
+            </div>
+            <div id="sessionList" class="session-list">
+                <!-- Sessions will be populated here -->
+            </div>
         </div>
-        <div class="hotbar-slot">
-            <div class="status-indicator" id="statusIndicator">●</div>
-            <div class="slot-label" id="statusText">Offline</div>
+
+        <!-- Center - Isometric World -->
+        <div class="world-container">
+            <canvas id="worldCanvas"></canvas>
         </div>
-        <div class="hotbar-slot">
-            <div class="slot-value" id="sessionCount">0</div>
-            <div class="slot-label">Sessions</div>
+    </div>
+
+    <!-- Bottom Panel - Selected Session Details -->
+    <div id="bottomPanel" class="bottom-panel hidden">
+        <div class="panel-left">
+            <div class="portrait-frame">
+                <canvas id="portraitCanvas" width="160" height="160"></canvas>
+            </div>
         </div>
-        <div class="hotbar-slot">
-            <div class="slot-value" id="modelName">-</div>
-            <div class="slot-label">Model</div>
+        <div class="panel-center">
+            <div class="session-header">
+                <span class="session-name" id="selectedSessionName">Agent Name</span>
+                <span class="model-badge" id="selectedModel">claude-opus-4-5</span>
+            </div>
+            <div class="session-stats">
+                <div class="stat-item">
+                    <span class="stat-label">CTX:</span>
+                    <div class="progress-bar">
+                        <div id="ctxProgress" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <span id="ctxPercent">0%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="tokenUsage">0</span> tokens
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="messageCount">0</span> msgs
+                </div>
+                <div class="stat-item">
+                    <span class="channel-badge" id="channelBadge">telegram</span>
+                </div>
+            </div>
+            <div class="session-chat">
+                <div class="chat-title">SESSION CHAT</div>
+                <div id="chatContent" class="chat-content">
+                    No messages yet...
+                </div>
+            </div>
         </div>
-        <div class="hotbar-slot">
-            <div class="slot-value" id="tokensUsed">0</div>
-            <div class="slot-label">Tokens</div>
-        </div>
-        <div class="hotbar-slot">
-            <div class="slot-value" id="costDisplay">$0</div>
-            <div class="slot-label">Cost</div>
-        </div>
-        <div class="hotbar-slot">
-            <div class="slot-value" id="uptimeDisplay">0s</div>
-            <div class="slot-label">Uptime</div>
-        </div>
-        <div class="hotbar-slot">
-            <div class="slot-value" id="cronCount">0</div>
-            <div class="slot-label">Crons</div>
-        </div>
-        <div class="hotbar-slot clickable" id="settingsBtn">
-            <div class="slot-icon">⚙️</div>
-            <div class="slot-label">Settings</div>
+        <div class="panel-right">
+            <button class="action-btn" id="viewHistoryBtn" title="View History">
+                📋
+            </button>
+            <button class="action-btn" id="refreshBtn" title="Refresh">
+                🔄
+            </button>
+            <button class="action-btn disabled" id="sendMessageBtn" title="Send Message (disabled)">
+                ⚡
+            </button>
         </div>
     </div>
 
