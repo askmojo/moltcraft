@@ -1213,3 +1213,73 @@ body.panel-open .main-container {
 .send-btn:active {
     transform: translateY(0);
 }
+
+/* ========================================
+   CHAT IMAGES
+   ======================================== */
+
+.chat-bubble img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 4px 0;
+    display: block;
+    cursor: pointer;
+}
+
+.chat-bubble img:hover {
+    opacity: 0.9;
+}
+
+/* ========================================
+   MIC ACTIVE STATE
+   ======================================== */
+
+.mic-active {
+    animation: mic-active-pulse 1s ease-in-out infinite !important;
+    color: #ff4444 !important;
+}
+
+@keyframes mic-active-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.mic-listening-indicator {
+    text-align: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #ff4444;
+    padding: 4px 8px;
+    animation: mic-active-pulse 1s ease-in-out infinite;
+}
+
+/* ========================================
+   CONNECTION HELP TEXT
+   ======================================== */
+
+.connection-help {
+    margin-top: 20px;
+    padding: 12px;
+    background: rgba(200, 168, 50, 0.05);
+    border: 1px solid rgba(200, 168, 50, 0.2);
+}
+
+.connection-help p {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 6px;
+}
+
+.connection-help p:last-child {
+    margin-bottom: 0;
+}
+
+.connection-help code {
+    color: var(--gold);
+    background: rgba(0,0,0,0.3);
+    padding: 1px 4px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+}

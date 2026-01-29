@@ -290,14 +290,26 @@ class VoiceEngine {
         this.recognition.onend = () => {
             this.isRecording = false;
             const btn = document.getElementById('micBtn');
-            if (btn) btn.classList.remove('recording');
+            if (btn) {
+                btn.classList.remove('recording');
+                btn.classList.remove('mic-active');
+            }
+            // Remove listening indicator
+            const indicator = document.getElementById('micListeningIndicator');
+            if (indicator) indicator.remove();
         };
 
         this.recognition.onerror = (event) => {
             console.warn('STT error:', event.error);
             this.isRecording = false;
             const btn = document.getElementById('micBtn');
-            if (btn) btn.classList.remove('recording');
+            if (btn) {
+                btn.classList.remove('recording');
+                btn.classList.remove('mic-active');
+            }
+            // Remove listening indicator
+            const indicator = document.getElementById('micListeningIndicator');
+            if (indicator) indicator.remove();
         };
     }
 
@@ -310,14 +322,34 @@ class VoiceEngine {
         if (this.isRecording) {
             this.recognition.stop();
             this.isRecording = false;
-            document.getElementById('micBtn')?.classList.remove('recording');
+            const btn = document.getElementById('micBtn');
+            if (btn) {
+                btn.classList.remove('recording');
+                btn.classList.remove('mic-active');
+            }
+            // Remove listening indicator
+            const indicator = document.getElementById('micListeningIndicator');
+            if (indicator) indicator.remove();
         } else {
             // Detect language from page or default
             this.recognition.lang = navigator.language || 'en-US';
             this.recognition.start();
             this.isRecording = true;
-            document.getElementById('micBtn')?.classList.add('recording');
+            const btn = document.getElementById('micBtn');
+            if (btn) {
+                btn.classList.add('recording');
+                btn.classList.add('mic-active');
+            }
             sfx.click();
+            // Show listening indicator
+            const inputRow = document.querySelector('.chat-input-row');
+            if (inputRow && !document.getElementById('micListeningIndicator')) {
+                const indicator = document.createElement('div');
+                indicator.id = 'micListeningIndicator';
+                indicator.className = 'mic-listening-indicator';
+                indicator.textContent = '🔴 Listening...';
+                inputRow.parentNode.insertBefore(indicator, inputRow);
+            }
         }
     }
 
@@ -381,25 +413,113 @@ class VoiceEngine {
     }
 
     // Auto-speak agent response if enabled — uses agent-specific voice
+    // Only speaks for the active session, skips if already speaking
     async speakAgentResponse(text, sessionKey) {
+        if (this.speaking) {
+            console.log('[Voice] Already speaking, skipping');
+            return;
+        }
         if (this.autoSpeak && this.isConfigured && text) {
             const v = this.getVoiceForAgent(sessionKey);
+            console.log('[Voice] Speaking with voice:', v.name, '| text:', text?.substring(0, 50));
             await this.speak(text, v.id);
         }
     }
 
-    // Auto-speak toast if enabled
+    // Auto-speak toast if enabled — disabled to avoid multiple voices
     async speakToast(message) {
-        if (this.autoSpeakToasts && this.isConfigured && message) {
-            // Strip emoji for cleaner speech
-            const clean = message.replace(/[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/gu, '').trim();
-            if (clean) await this.speak(clean);
-        }
+        // Disabled: toasts from other agents would overlap with active chat voice
+        return;
     }
 }
 
 // Global voice engine
 const voice = new VoiceEngine();
+
+// Test function — run in browser console: testVoice()
+window.testVoice = async function(text) {
+    text = text || 'Hello! Moltcraft voice is working. Your agents can now talk to you.';
+    console.log('[Voice Test] isConfigured:', voice.isConfigured, 'autoSpeak:', voice.autoSpeak, 'key:', voice.elevenLabsKey?.substring(0,8));
+    if (!voice.isConfigured) {
+        console.error('[Voice Test] ElevenLabs not configured! No API key.');
+        return;
+    }
+    console.log('[Voice Test] Speaking:', text.substring(0, 50) + '...');
+    await voice.speak(text);
+    console.log('[Voice Test] Done!');
+};
+
+// ========================================
+// MARKDOWN TO HTML CONVERTER (with XSS sanitization)
+// ========================================
+
+function markdownToHtml(text) {
+    if (!text) return '';
+
+    // Step 0: Handle MEDIA: references before escaping HTML
+    // MEDIA:/path/to/file.ext or MEDIA:https://url
+    text = text.replace(/MEDIA:(https?:\/\/[^\s]+|\/[^\s]+)/g, (match, src) => {
+        // Check if it's an image by extension
+        if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/i.test(src)) {
+            return `![image](${src})`;
+        }
+        // For audio/other media, render as a link
+        return `[Media: ${src}](${src})`;
+    });
+
+    // Step 1: Escape HTML entities to prevent XSS
+    let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    // Step 2: Convert markdown to HTML (order matters)
+
+    // Code blocks (``` ... ```) — before inline transforms
+    html = html.replace(/```[\s\S]*?```/g, match => {
+        const code = match.slice(3, -3).replace(/^\n/, '');
+        return '<pre><code>' + code + '</code></pre>';
+    });
+
+    // Inline code (`code`)
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Headings (must be at start of line)
+    html = html.replace(/^### (.+)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>');
+
+    // Markdown images ![alt](url) — before links/bold/italic
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+        // Un-escape the URL (it was HTML-escaped in step 1)
+        const cleanUrl = url.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+        const cleanAlt = alt || 'image';
+        return `<img src="${cleanUrl}" alt="${cleanAlt}" style="max-width:100%;border-radius:8px;margin:4px 0;display:block" loading="lazy">`;
+    });
+
+    // Bold (**text**)
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // Italic (*text*) — but not inside <strong> tags
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // Bullet lists: wrap consecutive "- item" lines in <ul>
+    html = html.replace(/((?:^- .+$\n?)+)/gm, match => {
+        const items = match.trim().split('\n').map(line => {
+            return '<li>' + line.replace(/^- /, '') + '</li>';
+        }).join('');
+        return '<ul>' + items + '</ul>';
+    });
+
+    // Line breaks
+    html = html.replace(/\n/g, '<br>');
+
+    // Clean up <br> after block elements
+    html = html.replace(/<\/(h[34]|ul|pre)><br>/g, '</$1>');
+    html = html.replace(/<br><(h[34]|ul|pre)/g, '<$1');
+
+    return html;
+}
 
 class MoltcraftApp {
     constructor() {
@@ -522,10 +642,13 @@ class MoltcraftApp {
             document.getElementById('onlineStatus').classList.add('online');
             document.getElementById('onlineStatus').textContent = 'ONLINE';
             
-            // Init sound & play connect SFX + ambient
+            // Init sound & play connect SFX + ambient (if enabled)
             sfx.init();
             sfx.connect();
-            sfx.startAmbient();
+            const moltcraftSettings = JSON.parse(localStorage.getItem('moltcraft_settings') || '{}');
+            if (moltcraftSettings.ambientEnabled) {
+                sfx.startAmbient();
+            }
             
             // Load ElevenLabs key from Moltbot config
             this.checkElevenLabsFromMoltbot();
@@ -926,6 +1049,9 @@ class MoltcraftApp {
         const modal = document.getElementById('settingsModal');
         document.getElementById('autoSpeakEnabled').checked = voice.autoSpeak;
         document.getElementById('autoSpeakToasts').checked = voice.autoSpeakToasts;
+        // Load ambient sound setting
+        const moltcraftSettings = JSON.parse(localStorage.getItem('moltcraft_settings') || '{}');
+        document.getElementById('ambientSoundEnabled').checked = !!moltcraftSettings.ambientEnabled;
         modal.classList.remove('hidden');
         this.checkElevenLabsFromMoltbot();
         this.updateVoiceRoster();
@@ -965,6 +1091,17 @@ class MoltcraftApp {
         voice.autoSpeak = document.getElementById('autoSpeakEnabled').checked;
         voice.autoSpeakToasts = document.getElementById('autoSpeakToasts').checked;
         voice.saveSettings();
+        // Save ambient sound setting
+        const ambientEnabled = document.getElementById('ambientSoundEnabled').checked;
+        const moltcraftSettings = JSON.parse(localStorage.getItem('moltcraft_settings') || '{}');
+        moltcraftSettings.ambientEnabled = ambientEnabled;
+        localStorage.setItem('moltcraft_settings', JSON.stringify(moltcraftSettings));
+        // Start or stop ambient accordingly
+        if (ambientEnabled) {
+            sfx.startAmbient();
+        } else {
+            sfx.stopAmbient();
+        }
         this.hideSettings();
         this.showToast('✅ Settings saved', 'success');
     }
@@ -988,6 +1125,14 @@ class MoltcraftApp {
             },
             body: JSON.stringify({ tool: 'gateway', args: { action: 'config.get' } })
         });
+        // Issue 4: Check Content-Type before parsing — static sites return HTML
+        const contentType = res.headers.get('Content-Type') || '';
+        if (!contentType.includes('application/json')) {
+            throw new Error('Gateway not reachable (not connected to local server). Got: ' + contentType.split(';')[0]);
+        }
+        if (!res.ok) {
+            throw new Error('Gateway API error: ' + res.status);
+        }
         const data = await res.json();
         return this._extractConfig(data);
     }
@@ -996,19 +1141,23 @@ class MoltcraftApp {
         const statusEl = document.getElementById('elevenLabsStatus');
         try {
             const config = await this._fetchGatewayConfig();
+            console.log('[ElevenLabs] Config loaded, skills:', Object.keys(config.skills?.entries || {}));
             const sagKey = config.skills?.entries?.sag?.apiKey;
             if (sagKey) {
                 voice.elevenLabsKey = sagKey;
                 voice.saveSettings();
+                console.log('[ElevenLabs] ✅ Key loaded, voice.isConfigured:', voice.isConfigured);
                 statusEl.innerHTML = `<span class="config-label">ElevenLabs (from Moltbot)</span>
                     <span class="config-badge ok">✅ CONFIGURED</span>`;
             } else {
+                console.warn('[ElevenLabs] No sag key found in config');
                 statusEl.innerHTML = `<span class="config-label">ElevenLabs (from Moltbot)</span>
                     <span class="config-badge off">❌ NOT CONFIGURED — add "sag" skill in Moltbot</span>`;
             }
         } catch (e) {
+            console.error('[ElevenLabs] Failed to load:', e.message);
             statusEl.innerHTML = `<span class="config-label">ElevenLabs</span>
-                <span class="config-badge off">❌ Cannot reach gateway</span>`;
+                <span class="config-badge off">❌ ${e.message}</span>`;
         }
     }
 
@@ -1470,32 +1619,81 @@ class MoltcraftApp {
             return;
         }
         
-        // Detect new assistant messages and auto-speak the latest
-        const assistantMsgs = messages.filter(m => m.role === 'assistant');
-        const prevCount = this._lastChatMsgCount || 0;
-        if (assistantMsgs.length > prevCount && prevCount > 0) {
-            const newest = assistantMsgs[assistantMsgs.length - 1];
-            let spText = '';
-            if (newest.content) {
-                for (const part of (Array.isArray(newest.content) ? newest.content : [newest.content])) {
-                    if (part.type === 'text' && part.text) { spText = part.text; break; }
-                }
-                if (!spText && typeof newest.content === 'string') spText = newest.content;
-            }
-            if (spText) voice.speakAgentResponse(spText, this.selectedSession?.key);
-        }
-        this._lastChatMsgCount = assistantMsgs.length;
+        // Filter patterns for system noise
+        const skipPatterns = [
+            /^\[media attached:/i,
+            /^System:/,
+            /^NO_REPLY$/,
+            /^HEARTBEAT_OK$/,
+            /^ANNOUNCE_SKIP$/,
+            /^REPLY_SKIP$/,
+            /^\[Queued/,
+            /^To send an image back/,
+            /^Agent-to-agent announce/i,
+        ];
         
-        messages.forEach(msg => {
-            const bubble = document.createElement('div');
-            bubble.className = 'chat-bubble chat-' + (msg.role || 'user');
-            
+        // Detect new assistant messages by comparing latest VISIBLE message text
+        const assistantMsgs = messages.filter(m => m.role === 'assistant');
+        let latestText = '';
+        // Walk backwards to find latest non-system assistant message
+        for (let i = assistantMsgs.length - 1; i >= 0; i--) {
+            const msg = assistantMsgs[i];
             let text = '';
             if (msg.content) {
-                for (const part of (Array.isArray(msg.content) ? msg.content : [msg.content])) {
+                const parts = Array.isArray(msg.content) ? msg.content : [msg.content];
+                const hasOnlyToolContent = parts.every(p => p.type === 'tool_use' || p.type === 'tool_result' || p.type === 'tool_call');
+                if (hasOnlyToolContent && parts.length > 0) continue;
+                for (const part of parts) {
+                    if (part.type === 'text' && part.text) { text = part.text; break; }
+                }
+                if (!text && typeof msg.content === 'string') text = msg.content;
+            }
+            if (!text || !text.trim()) continue;
+            if (skipPatterns.some(p => p.test(text.trim()))) continue;
+            latestText = text;
+            break;
+        }
+        const prevText = this._lastAssistantText || '';
+        const isNew = latestText && latestText !== prevText && prevText !== '';
+        if (isNew) {
+            voice.speakAgentResponse(latestText, this.selectedSession?.key);
+        }
+        this._lastAssistantText = latestText;
+        
+        messages.forEach(msg => {
+            // Filter out system messages
+            if (msg.role === 'system') return;
+            
+            let text = '';
+            let imageHtml = '';
+            
+            if (msg.content) {
+                const parts = Array.isArray(msg.content) ? msg.content : [msg.content];
+                // Check if this message has only tool_use/tool_result blocks (no user-visible text)
+                const hasOnlyToolContent = parts.every(part =>
+                    part.type === 'tool_use' || part.type === 'tool_result' || part.type === 'tool_call'
+                );
+                if (hasOnlyToolContent && parts.length > 0) return;
+                
+                for (const part of parts) {
                     if (part.type === 'text' && part.text) {
                         text = part.text;
-                        break;
+                    } else if (part.type === 'image') {
+                        // Handle image content parts (base64 or URL)
+                        let imgSrc = '';
+                        if (part.source?.type === 'base64' && part.source?.data) {
+                            const mediaType = part.source.media_type || 'image/png';
+                            imgSrc = `data:${mediaType};base64,${part.source.data}`;
+                        } else if (part.source?.url) {
+                            imgSrc = part.source.url;
+                        } else if (part.url) {
+                            imgSrc = part.url;
+                        } else if (part.data) {
+                            imgSrc = `data:image/png;base64,${part.data}`;
+                        }
+                        if (imgSrc) {
+                            imageHtml += `<img src="${imgSrc}" alt="image" style="max-width:100%;border-radius:8px;margin:4px 0;display:block" loading="lazy">`;
+                        }
                     }
                 }
                 if (!text && typeof msg.content === 'string') {
@@ -1503,12 +1701,24 @@ class MoltcraftApp {
                 }
             }
             
+            // Filter out empty messages (but allow image-only messages)
+            if ((!text || !text.trim()) && !imageHtml) return;
+            
+            // Issue 4: Skip system noise messages
+            if (text && skipPatterns.some(pattern => pattern.test(text.trim()))) return;
+            
             // Truncate long messages
-            if (text.length > 200) {
+            if (text && text.length > 500) {
                 text = text.substring(0, 500) + '...';
             }
             
-            bubble.textContent = text || '(empty message)';
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble chat-' + (msg.role || 'user');
+            // Convert markdown to HTML (sanitized) + append any image parts
+            let html = '';
+            if (text) html += markdownToHtml(text);
+            if (imageHtml) html += imageHtml;
+            bubble.innerHTML = html;
             chatContent.appendChild(bubble);
         });
         
@@ -1528,23 +1738,24 @@ class MoltcraftApp {
         }
 
         if (!this.selectedSession || !this.selectedSession.key) return;
+        
+        // Clear input immediately on send
+        input.value = '';
         sfx.sendMessage();
+        
+        // Show message immediately
+        const chatContent = document.getElementById('chatMessages');
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble chat-user';
+        bubble.textContent = message;
+        chatContent.appendChild(bubble);
+        chatContent.scrollTop = chatContent.scrollHeight;
         
         try {
             await this.invokeAPI('sessions_send', {
                 sessionKey: this.selectedSession.key,
                 message: message
             });
-            
-            // Show message immediately
-            const chatContent = document.getElementById('chatMessages');
-            const bubble = document.createElement('div');
-            bubble.className = 'chat-bubble chat-user';
-            bubble.textContent = message;
-            chatContent.appendChild(bubble);
-            chatContent.scrollTop = chatContent.scrollHeight;
-            
-            input.value = '';
             
             // Refresh after a moment to get assistant response
             setTimeout(() => this.loadChatHistory(), 2000);
@@ -1635,10 +1846,13 @@ class IsometricWorld {
         this.mapWidth = 60;
         this.mapHeight = 60;
         
+        // Center camera on the middle of the map
+        // World center = tile (30,30) → iso screen: x=0, y=(30+30)*16=960
+        // Camera offset: shift so world center appears at screen center
         this.camera = {
             x: 0,
-            y: 0,
-            zoom: 1.5, // Start closer
+            y: -960 * 1.5 + 300, // offset by world center Y * zoom + some padding
+            zoom: 1.5,
             targetZoom: 1.5
         };
         
@@ -1909,7 +2123,7 @@ class IsometricWorld {
 
     handleWheel(e) {
         e.preventDefault();
-        console.log('Wheel event:', e.deltaY, 'Current zoom:', this.camera.zoom);
+        // console.log('Wheel event:', e.deltaY, 'Current zoom:', this.camera.zoom);
         
         // Mouse position relative to canvas
         const rect = this.canvas.getBoundingClientRect();

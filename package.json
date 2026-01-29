@@ -1,0 +1,33 @@
+{
+  "name": "@ask-mojo/moltcraft",
+  "version": "0.1.0",
+  "description": "Turn your AI agents into a living pixel world — visual dashboard for Moltbot",
+  "bin": {
+    "moltcraft": "bin/moltcraft.js"
+  },
+  "keywords": [
+    "moltbot",
+    "ai",
+    "agents",
+    "dashboard",
+    "pixel-art",
+    "isometric"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askmojo/moltcraft.git"
+  },
+  "homepage": "https://moltcraft.pages.dev",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin/",
+    "index.html",
+    "js/",
+    "css/",
+    "server.js",
+    "README.md"
+  ]
+}
