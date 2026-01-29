@@ -870,6 +870,17 @@ class MoltcraftApp {
         document.getElementById('autoSpeakEnabled').checked = voice.autoSpeak;
         document.getElementById('autoSpeakToasts').checked = voice.autoSpeakToasts;
         modal.classList.remove('hidden');
+
+        // Tab switching
+        modal.querySelectorAll('.settings-tab').forEach(tab => {
+            tab.onclick = () => {
+                modal.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+                modal.querySelectorAll('.settings-tab-content').forEach(c => c.style.display = 'none');
+                tab.classList.add('active');
+                document.getElementById('tab-' + tab.dataset.tab).style.display = 'block';
+                if (tab.dataset.tab === 'moltbot') this.loadMoltbotConfig();
+            };
+        });
     }
 
     hideSettings() {
@@ -884,6 +895,123 @@ class MoltcraftApp {
         voice.saveSettings();
         this.hideSettings();
         this.showToast('✅ Voice settings saved', 'success');
+    }
+
+    async loadMoltbotConfig() {
+        const loading = document.getElementById('moltbotConfigLoading');
+        const content = document.getElementById('moltbotConfigContent');
+        loading.style.display = 'block';
+        content.style.display = 'none';
+
+        try {
+            const res = await fetch(`${this.gatewayUrl}/api/gateway/config`, {
+                headers: { 'Authorization': `Bearer ${this.gatewayToken}` }
+            });
+            const data = await res.json();
+            const config = data.result?.config || data.config || data;
+
+            // --- Channels ---
+            const channelsEl = document.getElementById('configChannels');
+            channelsEl.innerHTML = '';
+            const channels = config.channels || {};
+            for (const [name, ch] of Object.entries(channels)) {
+                const enabled = ch.enabled !== false;
+                channelsEl.innerHTML += `<div class="config-row">
+                    <span class="config-label">${name.charAt(0).toUpperCase() + name.slice(1)}</span>
+                    <span class="config-badge ${enabled ? 'ok' : 'off'}">${enabled ? '✅ CONNECTED' : '❌ OFF'}</span>
+                </div>`;
+            }
+
+            // --- Models ---
+            const modelsEl = document.getElementById('configModels');
+            modelsEl.innerHTML = '';
+            const agentDefaults = config.agents?.defaults || {};
+            const primary = agentDefaults.model?.primary || 'unknown';
+            const fallbacks = agentDefaults.model?.fallbacks || [];
+            modelsEl.innerHTML += `<div class="config-row">
+                <span class="config-label">Primary</span>
+                <span class="config-value">${primary.split('/').pop()}</span>
+            </div>`;
+            fallbacks.forEach(fb => {
+                modelsEl.innerHTML += `<div class="config-row">
+                    <span class="config-label">Fallback</span>
+                    <span class="config-value">${fb.split('/').pop()}</span>
+                </div>`;
+            });
+
+            // --- Skills & APIs ---
+            const skillsEl = document.getElementById('configSkills');
+            skillsEl.innerHTML = '';
+            const skillEntries = config.skills?.entries || {};
+            const skillNames = {
+                'sag': 'ElevenLabs (TTS)',
+                'openai-image-gen': 'OpenAI Images',
+                'openai-whisper-api': 'OpenAI Whisper',
+                'nano-banana-pro': 'Google Gemini'
+            };
+            for (const [key, val] of Object.entries(skillEntries)) {
+                const hasKey = !!val.apiKey;
+                const displayName = skillNames[key] || key;
+                skillsEl.innerHTML += `<div class="config-row">
+                    <span class="config-label">${displayName}</span>
+                    <span class="config-badge ${hasKey ? 'ok' : 'off'}">${hasKey ? '✅ CONFIGURED' : '❌ MISSING'}</span>
+                </div>`;
+            }
+
+            // --- Gateway ---
+            const gatewayEl = document.getElementById('configGateway');
+            gatewayEl.innerHTML = '';
+            const gw = config.gateway || {};
+            gatewayEl.innerHTML += `<div class="config-row">
+                <span class="config-label">Port</span>
+                <span class="config-value">${gw.port || '?'}</span>
+            </div>`;
+            gatewayEl.innerHTML += `<div class="config-row">
+                <span class="config-label">Mode</span>
+                <span class="config-badge info">${(gw.mode || 'unknown').toUpperCase()}</span>
+            </div>`;
+            gatewayEl.innerHTML += `<div class="config-row">
+                <span class="config-label">Bind</span>
+                <span class="config-value">${gw.bind || 'localhost'}</span>
+            </div>`;
+            gatewayEl.innerHTML += `<div class="config-row">
+                <span class="config-label">Auth</span>
+                <span class="config-badge ${gw.auth?.mode === 'token' ? 'ok' : 'off'}">${gw.auth?.mode === 'token' ? '🔒 TOKEN' : '⚠️ ' + (gw.auth?.mode || 'none')}</span>
+            </div>`;
+
+            // --- Agent Limits ---
+            const agentsEl = document.getElementById('configAgents');
+            agentsEl.innerHTML = '';
+            agentsEl.innerHTML += `<div class="config-row">
+                <span class="config-label">Max Concurrent</span>
+                <span class="config-value">${agentDefaults.maxConcurrent || '?'}</span>
+            </div>`;
+            agentsEl.innerHTML += `<div class="config-row">
+                <span class="config-label">Max Subagents</span>
+                <span class="config-value">${agentDefaults.subagents?.maxConcurrent || '?'}</span>
+            </div>`;
+            agentsEl.innerHTML += `<div class="config-row">
+                <span class="config-label">Compaction</span>
+                <span class="config-badge info">${(agentDefaults.compaction?.mode || 'off').toUpperCase()}</span>
+            </div>`;
+
+            // --- Hooks ---
+            const hooksEl = document.getElementById('configHooks');
+            hooksEl.innerHTML = '';
+            const hookEntries = config.hooks?.internal?.entries || {};
+            for (const [name, hook] of Object.entries(hookEntries)) {
+                const enabled = hook.enabled !== false;
+                hooksEl.innerHTML += `<div class="config-row">
+                    <span class="config-label">${name}</span>
+                    <span class="config-badge ${enabled ? 'ok' : 'off'}">${enabled ? '✅ ON' : '❌ OFF'}</span>
+                </div>`;
+            }
+
+            loading.style.display = 'none';
+            content.style.display = 'block';
+        } catch (e) {
+            loading.textContent = '❌ Failed to load config: ' + e.message;
+        }
     }
 
     showNewQuestModal() {

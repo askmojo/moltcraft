@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⛏️ MOLTCRAFT - Agent Dashboard</title>
-    <link rel="stylesheet" href="css/style.css?v=17">
+    <link rel="stylesheet" href="css/style.css?v=18">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -160,34 +160,67 @@ window.onerror = function(msg, url, line, col, err) {
 
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal hidden">
-        <div class="modal-content">
+        <div class="modal-content" style="width:600px;max-height:80vh;display:flex;flex-direction:column;">
             <div class="modal-header">
                 <h2 class="pixel-title">⚙️ SETTINGS</h2>
+                <div class="settings-tabs">
+                    <button class="settings-tab active" data-tab="moltcraft">🎮 MOLTCRAFT</button>
+                    <button class="settings-tab" data-tab="moltbot">🤖 MOLTBOT</button>
+                </div>
             </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>ElevenLabs API Key</label>
-                    <input type="password" id="elevenLabsKey" placeholder="sk_..." class="quest-input" style="height:auto;resize:none;">
+            <div class="modal-body" style="overflow-y:auto;flex:1;">
+                <!-- Moltcraft Tab -->
+                <div id="tab-moltcraft" class="settings-tab-content">
+                    <h3 class="settings-section-title">🔊 Voice & Audio</h3>
+                    <div class="form-group">
+                        <label>ElevenLabs API Key</label>
+                        <input type="password" id="elevenLabsKey" placeholder="sk_..." class="quest-input" style="height:auto;resize:none;">
+                    </div>
+                    <div class="form-group">
+                        <label>Default Voice ID</label>
+                        <input type="text" id="elevenLabsVoice" placeholder="21m00Tcm4TlvDq8ikWAM (Rachel)" class="quest-input" style="height:auto;resize:none;">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="autoSpeakEnabled"> Auto-speak agent responses
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="autoSpeakToasts"> Speak toast notifications
+                        </label>
+                    </div>
+                    <p class="settings-hint">🎤 Mic uses browser Speech Recognition (free).<br>🔊 Voice requires ElevenLabs API key.</p>
                 </div>
-                <div class="form-group">
-                    <label>Default Voice ID</label>
-                    <input type="text" id="elevenLabsVoice" placeholder="21m00Tcm4TlvDq8ikWAM (Rachel)" class="quest-input" style="height:auto;resize:none;">
+
+                <!-- Moltbot Tab -->
+                <div id="tab-moltbot" class="settings-tab-content" style="display:none;">
+                    <div id="moltbotConfigLoading" class="settings-hint" style="text-align:center;padding:20px;">Loading gateway config...</div>
+                    <div id="moltbotConfigContent" style="display:none;">
+
+                        <h3 class="settings-section-title">📡 Channels</h3>
+                        <div id="configChannels" class="config-grid"></div>
+
+                        <h3 class="settings-section-title">🧠 Models</h3>
+                        <div id="configModels" class="config-grid"></div>
+
+                        <h3 class="settings-section-title">🔌 Skills & APIs</h3>
+                        <div id="configSkills" class="config-grid"></div>
+
+                        <h3 class="settings-section-title">⚡ Gateway</h3>
+                        <div id="configGateway" class="config-grid"></div>
+
+                        <h3 class="settings-section-title">🤖 Agent Limits</h3>
+                        <div id="configAgents" class="config-grid"></div>
+
+                        <h3 class="settings-section-title">🪝 Hooks</h3>
+                        <div id="configHooks" class="config-grid"></div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label style="display:flex;align-items:center;gap:10px;">
-                        <input type="checkbox" id="autoSpeakEnabled"> Auto-speak agent responses
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label style="display:flex;align-items:center;gap:10px;">
-                        <input type="checkbox" id="autoSpeakToasts"> Speak toast notifications
-                    </label>
-                </div>
-                <p style="color:var(--text-secondary);font-size:11px;margin-top:10px;">🎤 Mic uses browser Speech Recognition (no API key needed).<br>🔊 Voice requires ElevenLabs API key.</p>
             </div>
             <div class="modal-footer">
                 <button onclick="window.moltcraftApp.saveSettings()" class="btn-primary">SAVE</button>
-                <button onclick="window.moltcraftApp.hideSettings()" class="btn-secondary">CANCEL</button>
+                <button onclick="window.moltcraftApp.hideSettings()" class="btn-secondary">CLOSE</button>
             </div>
         </div>
     </div>
@@ -195,6 +228,6 @@ window.onerror = function(msg, url, line, col, err) {
     <!-- Toast Notifications Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <script src="js/app.js?v=17"></script>
+    <script src="js/app.js?v=18"></script>
 </body>
 </html>
