@@ -1,132 +1,116 @@
-# 🦞 Moltbot Dashboard
+# ⛏️ Moltcraft
 
-A real-time web dashboard for visualizing what a Moltbot AI agent is doing. Built with pure HTML, CSS, and JavaScript — no frameworks, just clean code.
+Turn your AI agents into a living pixel world — a visual dashboard for [Moltbot](https://docs.molt.bot).
 
-![Moltbot Dashboard Screenshot](screenshot.png)
-*Screenshot placeholder - dashboard showing active sessions, system status, and cron jobs*
+![License](https://img.shields.io/badge/license-MIT-green)
+![npm](https://img.shields.io/npm/v/@ask-mojo/moltcraft)
+![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
 
-## What It Is
+## What is this?
 
-Moltbot Dashboard connects to the Moltbot Gateway HTTP API to provide live visibility into your AI agent's activity. Monitor active sessions, system status, and scheduled tasks—all in a sleek, terminal-inspired dark UI.
+Moltcraft is an isometric pixel-art dashboard that connects to your Moltbot gateway. Your AI agents become characters that walk, mine tokens, and complete tasks — all in real-time.
 
-## Features
+**Features:**
+- 🎮 Isometric Minecraft-inspired world with pixel art agents
+- 💬 Live chat with any agent session
+- 🔊 Voice output — agents speak their responses (ElevenLabs TTS)
+- 🎤 Voice input — talk to your agents (browser Speech Recognition)
+- 🕐 Click buildings for real data (cron jobs, token usage, skills, channels)
+- 📡 Channel status indicators (Telegram, WhatsApp, Slack)
+- ⚙️ Full Moltbot config viewer
+- 🌙 Day/night cycle, weather, particles
 
-✨ **Real-Time Monitoring**
-- 🔄 Auto-refresh every 10 seconds
-- 🎯 Live session tracking with activity status
-- 📊 System metrics and usage statistics
-- ⏰ Cron job scheduling overview
+## Quick Start
 
-🎨 **Clean Dark UI**
-- Terminal-inspired hacker aesthetic
-- Responsive grid layout
-- Smooth animations and status indicators
-- Monospaced fonts for data readability
-
-🔒 **Secure Connection**
-- Bearer token authentication
-- Configurable gateway URL
-- Local storage for settings (stay safe!)
-
-## How to Use
-
-### 1. Open the Dashboard
-
-Simply open `index.html` in your web browser. No build step required!
+### Option 1: One command (recommended)
 
 ```bash
-# Open directly
-open index.html
-
-# Or serve with a local HTTP server
-python3 -m http.server 8080
-# Then visit: http://localhost:8080
+npx @ask-mojo/moltcraft
 ```
 
-### 2. Configure Connection
+This auto-detects your Moltbot config, starts the dashboard, and opens your browser. Zero config.
 
-1. Click the ⚙️ **Settings** button in the top-right
-2. Enter your **Gateway URL** (default: `http://localhost:18789`)
-3. Enter your **Bearer Token** (get this from your Moltbot Gateway)
-4. Click **Connect**
+### Option 2: Clone the repo
 
-Your settings are saved in browser local storage for convenience.
-
-### 3. Monitor Your Agent
-
-Once connected, you'll see:
-
-- **Active Sessions** - All running agent sessions (main, subagents, isolated)
-- **System Status** - Current model, token usage, uptime
-- **Cron Jobs** - Scheduled tasks with next run times
-
-The dashboard auto-refreshes every 10 seconds. Use the 🔄 button for manual refresh.
-
-## Gateway API
-
-The dashboard connects to Moltbot Gateway via:
-
-```
-POST http://localhost:18789/tools/invoke
-Authorization: Bearer YOUR_TOKEN
-Content-Type: application/json
-
-{
-  "tool": "tool_name",
-  "args": {...}
-}
+```bash
+git clone https://github.com/askmojo/moltcraft
+cd moltcraft
+node server.js
+# Open http://localhost:8080
 ```
 
-**Tools used:**
-- `sessions_list` - Fetch active sessions
-- `session_status` - Get current session stats
-- `cron` (action: "list") - List scheduled jobs
+### Option 3: Remote access (tunnel)
 
-## Project Structure
-
-```
-moltbot-dashboard/
-├── index.html          # Main page
-├── css/
-│   └── style.css       # Dark theme styles
-├── js/
-│   └── app.js          # Dashboard logic
-└── README.md           # This file
+```bash
+npx @ask-mojo/moltcraft --tunnel
 ```
 
-Pure vanilla web tech. No dependencies, no build process, no nonsense.
+Creates a temporary public URL via Cloudflare tunnel. Share the URL + your token to access remotely.
+
+## Connect
+
+1. Open `http://localhost:8080` in your browser
+2. Enter your Moltbot gateway token
+   - Find it: `cat ~/.moltbot/moltbot.json | grep token`
+   - Or run: `moltbot status`
+3. Click **JOIN SERVER**
+4. Your agents appear in the world!
+
+## CLI Options
+
+```
+npx @ask-mojo/moltcraft [options]
+
+Options:
+  -p, --port PORT    Custom port (default: 8080)
+  -t, --tunnel       Enable Cloudflare tunnel for remote access
+  --no-open          Don't auto-open browser
+  -h, --help         Show help
+  -v, --version      Show version
+```
+
+## Buildings
+
+Click on buildings in the world to see real Moltbot data:
+
+| Building | Data |
+|----------|------|
+| 🕐 Clock Tower | Cron jobs, schedules, last/next run |
+| ⛏️ Mine | Token usage, top sessions by consumption |
+| 🏰 Barracks | Installed skills & API status |
+| 📡 Command Center | Gateway config, channels, models |
+| 🏛️ Agent Hall | Active agent sessions |
+
+## Voice
+
+Moltcraft supports voice input and output:
+
+- **Output (TTS):** Requires [ElevenLabs](https://elevenlabs.io) configured as the `sag` skill in Moltbot. Agents auto-speak new responses.
+- **Input (STT):** Uses browser Speech Recognition (Chrome/Edge). Requires HTTPS or localhost.
+- **Mute:** Click the 🔊 button to mute/unmute all sounds instantly.
+
+## Requirements
+
+- [Node.js](https://nodejs.org) >= 18
+- [Moltbot](https://docs.molt.bot) running on your machine
+- A modern browser (Chrome/Edge recommended for voice features)
 
 ## Tech Stack
 
-- **HTML5** - Semantic structure
-- **CSS3** - Grid layout, animations, custom properties
-- **Vanilla JavaScript** - ES6+ with fetch API
-- **LocalStorage API** - Settings persistence
+- Zero npm dependencies
+- Pure HTML/CSS/JS frontend
+- Node.js proxy server (same-origin API routing)
+- Web Audio API for procedural sound effects
+- ElevenLabs API for TTS
+- Browser Speech Recognition for STT
 
-## Browser Support
+## Links
 
-Works in all modern browsers:
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
-
-## Security Note
-
-⚠️ Your gateway token is stored in browser `localStorage`. Only use this dashboard on trusted devices. For production deployments, consider adding:
-- HTTPS for all connections
-- Token expiration and refresh
-- Additional auth layers
+- 🌐 [Landing page](https://moltcraft.pages.dev)
+- 📦 [npm package](https://www.npmjs.com/package/@ask-mojo/moltcraft)
+- 📖 [Moltbot docs](https://docs.molt.bot)
+- 💬 [Discord community](https://discord.gg/clawd)
 
 ## License
 
-MIT License - Use freely, modify as needed, share improvements!
-
-## Learn More
-
-- [Moltbot Documentation](https://moltbot.com/docs) (placeholder)
-- [Gateway API Reference](https://moltbot.com/docs/api) (placeholder)
-- [Community Discord](https://discord.gg/moltbot) (placeholder)
-
----
-
-Built with 🦞 by the Moltbot community
+MIT — do whatever you want with it. Add flying pigs if you want. 🐷
