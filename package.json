@@ -1,6 +1,6 @@
 {
   "name": "@ask-mojo/moltcraft",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Turn your AI agents into a living pixel world — visual dashboard for Moltbot",
   "bin": {
     "moltcraft": "bin/moltcraft.js"
