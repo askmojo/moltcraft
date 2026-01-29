@@ -4,12 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⛏️ MOLTCRAFT - Agent Dashboard</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=11">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
+<script>
+window.onerror = function(msg, url, line, col, err) {
+    document.body.innerHTML = '<div style="color:red;padding:20px;font-family:monospace;font-size:14px;background:#111;">'
+        + '<h2>JS ERROR</h2>'
+        + '<p>' + msg + '</p>'
+        + '<p>File: ' + url + ' Line: ' + line + '</p>'
+        + '<pre>' + (err && err.stack || '') + '</pre>'
+        + '</div>';
+};
+</script>
     <!-- Connection Overlay -->
     <div id="connectionOverlay" class="overlay">
         <div class="connection-panel">
@@ -17,7 +27,7 @@
             <p class="connection-subtitle">Connect to Gateway Server</p>
             <div class="form-group">
                 <label>Gateway URL</label>
-                <input type="text" id="gatewayUrl" placeholder="http://localhost:3050" value="http://localhost:3050">
+                <input type="text" id="gatewayUrl" placeholder="http://192.168.1.108:8080" value="http://192.168.1.108:8080">
             </div>
             <div class="form-group">
                 <label>Token</label>
@@ -34,9 +44,12 @@
     <div id="topBar" class="top-bar">
         <div class="top-bar-left">
             <span class="title pixel-title">⛏️ MOLTCRAFT</span>
+            <button id="newQuestBtn" class="quest-btn">⚔️ NEW QUEST</button>
         </div>
         <div class="top-bar-center">
             <span class="token-count">⬡ <span id="tokenCount">0</span></span>
+            <span class="stat-display">💰 <span id="totalCost">$0.0000</span></span>
+            <span class="stat-display">⏱️ <span id="activeTime">00:00:00</span></span>
             <span class="status-badge working">
                 <span id="workingCount">0</span> WORKING
             </span>
@@ -68,6 +81,9 @@
         <!-- Center - Isometric World -->
         <div class="world-container">
             <canvas id="worldCanvas"></canvas>
+            <div class="minimap-container">
+                <canvas id="minimapCanvas" width="150" height="150"></canvas>
+            </div>
         </div>
     </div>
 
@@ -103,8 +119,12 @@
             </div>
             <div class="session-chat">
                 <div class="chat-title">SESSION CHAT</div>
-                <div id="chatContent" class="chat-content">
-                    No messages yet...
+                <div id="chatMessages" class="chat-messages">
+                    <div class="chat-empty">No messages yet...</div>
+                </div>
+                <div class="chat-input-row">
+                    <input type="text" id="messageInput" placeholder="Send a message..." class="chat-input">
+                    <button id="sendMessageBtn" class="send-btn">⚡</button>
                 </div>
             </div>
         </div>
@@ -115,12 +135,29 @@
             <button class="action-btn" id="refreshBtn" title="Refresh">
                 🔄
             </button>
-            <button class="action-btn disabled" id="sendMessageBtn" title="Send Message (disabled)">
-                ⚡
-            </button>
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <!-- New Quest Modal -->
+    <div id="newQuestModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="pixel-title">⚔️ NEW QUEST</h2>
+            </div>
+            <div class="modal-body">
+                <label class="modal-label">Quest Description:</label>
+                <textarea id="questTaskInput" class="quest-input" placeholder="Enter the quest task..." rows="4"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button onclick="window.moltcraftApp.spawnNewQuest()" class="btn-primary">SPAWN AGENT</button>
+                <button onclick="window.moltcraftApp.hideNewQuestModal()" class="btn-secondary">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/app.js?v=11"></script>
 </body>
 </html>

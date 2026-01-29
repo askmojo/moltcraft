@@ -17,7 +17,20 @@ const MIME = {
   '.svg': 'image/svg+xml',
 };
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
 const server = http.createServer((req, res) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, CORS_HEADERS);
+    res.end();
+    return;
+  }
+
   // Proxy /api/* to Gateway
   if (req.url.startsWith('/api/')) {
     const gatewayPath = req.url.replace('/api', '');
@@ -37,13 +50,13 @@ const server = http.createServer((req, res) => {
       }, (proxyRes) => {
         res.writeHead(proxyRes.statusCode, {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
+          ...CORS_HEADERS,
         });
         proxyRes.pipe(res);
       });
 
       proxyReq.on('error', (e) => {
-        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.writeHead(502, { 'Content-Type': 'application/json', ...CORS_HEADERS });
         res.end(JSON.stringify({ ok: false, error: e.message }));
       });
 
@@ -54,7 +67,8 @@ const server = http.createServer((req, res) => {
   }
 
   // Serve static files
-  let filePath = req.url === '/' ? '/index.html' : req.url;
+  const cleanUrl = req.url.split('?')[0];
+  let filePath = cleanUrl === '/' ? '/index.html' : cleanUrl;
   filePath = path.join(__dirname, filePath);
 
   const ext = path.extname(filePath);
@@ -66,7 +80,10 @@ const server = http.createServer((req, res) => {
       res.end('Not found');
       return;
     }
-    res.writeHead(200, { 'Content-Type': contentType });
+    res.writeHead(200, { 
+      'Content-Type': contentType,
+      'Cache-Control': 'no-cache',
+    });
     res.end(data);
   });
 });

@@ -683,3 +683,308 @@ body {
 .hidden {
     display: none !important;
 }
+
+/* ========================================
+   NEW QUEST BUTTON
+   ======================================== */
+
+.quest-btn {
+    margin-left: 15px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #ff6600 0%, #ff9900 100%);
+    border: 2px solid #ffaa00;
+    color: #fff;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    box-shadow: 0 0 15px rgba(255, 102, 0, 0.3);
+}
+
+.quest-btn:hover {
+    background: linear-gradient(135deg, #ff7700 0%, #ffaa00 100%);
+    box-shadow: 0 0 25px rgba(255, 102, 0, 0.6);
+    transform: translateY(-2px);
+}
+
+.quest-btn:active {
+    transform: translateY(0);
+}
+
+/* ========================================
+   STAT DISPLAYS
+   ======================================== */
+
+.stat-display {
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid var(--gold);
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--gold-bright);
+}
+
+/* ========================================
+   MODAL
+   ======================================== */
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: var(--panel-dark);
+    border: 3px solid var(--gold);
+    padding: 30px;
+    width: 500px;
+    box-shadow: var(--shadow-gold), inset 0 0 40px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.modal-content::before,
+.modal-content::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--gold-bright);
+}
+
+.modal-content::before {
+    top: -3px;
+    left: -3px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.modal-content::after {
+    bottom: -3px;
+    right: -3px;
+    border-left: none;
+    border-top: none;
+}
+
+.modal-header {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.modal-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--gold);
+    font-weight: bold;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.quest-input {
+    width: 100%;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--gold);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: monospace;
+    resize: vertical;
+}
+
+.quest-input:focus {
+    outline: none;
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 10px rgba(200, 168, 50, 0.3);
+}
+
+.modal-footer {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-secondary {
+    flex: 1;
+    padding: 14px;
+    background: rgba(100, 100, 100, 0.5);
+    border: 2px solid #666;
+    color: var(--text-primary);
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+.btn-secondary:hover {
+    background: rgba(120, 120, 120, 0.7);
+    border-color: #888;
+}
+
+/* ========================================
+   TOAST NOTIFICATIONS
+   ======================================== */
+
+.toast-container {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast {
+    padding: 15px 20px;
+    background: var(--panel-dark);
+    border: 2px solid var(--gold);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), var(--shadow-gold);
+    transform: translateX(400px);
+    transition: transform 0.3s ease-out;
+    max-width: 350px;
+    word-wrap: break-word;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast-success {
+    border-color: var(--green);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 20px rgba(74, 222, 128, 0.4);
+}
+
+.toast-error {
+    border-color: var(--red);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 20px rgba(248, 113, 113, 0.4);
+}
+
+.toast-warning {
+    border-color: var(--yellow);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 20px rgba(251, 191, 36, 0.4);
+}
+
+.toast-info {
+    border-color: var(--blue);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 20px rgba(96, 165, 250, 0.4);
+}
+
+/* ========================================
+   MINIMAP
+   ======================================== */
+
+.minimap-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+    pointer-events: none;
+}
+
+#minimapCanvas {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* ========================================
+   CHAT SYSTEM
+   ======================================== */
+
+.chat-messages {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(200, 168, 50, 0.3);
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.chat-empty {
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+}
+
+.chat-bubble {
+    padding: 8px 12px;
+    border-radius: 8px;
+    max-width: 70%;
+    word-wrap: break-word;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.chat-user {
+    align-self: flex-end;
+    background: rgba(96, 165, 250, 0.3);
+    border: 1px solid var(--blue);
+    color: var(--text-primary);
+}
+
+.chat-assistant {
+    align-self: flex-start;
+    background: rgba(74, 222, 128, 0.3);
+    border: 1px solid var(--green);
+    color: var(--text-primary);
+}
+
+.chat-input-row {
+    display: flex;
+    gap: 8px;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--gold);
+    color: var(--text-primary);
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.chat-input:focus {
+    outline: none;
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 10px rgba(200, 168, 50, 0.3);
+}
+
+.send-btn {
+    width: 50px;
+    height: 40px;
+    background: var(--green);
+    border: 2px solid #22c55e;
+    color: #000;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.send-btn:hover {
+    background: #22c55e;
+    box-shadow: 0 0 15px rgba(74, 222, 128, 0.5);
+    transform: translateY(-2px);
+}
+
+.send-btn:active {
+    transform: translateY(0);
+}
