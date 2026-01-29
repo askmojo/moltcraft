@@ -262,7 +262,7 @@ body {
 
 /* When bottom panel is visible, shrink main area */
 body.panel-open .main-container {
-    height: calc(100vh - 60px - 200px);
+    height: calc(100vh - 60px - 120px);
 }
 
 /* ========================================
@@ -478,7 +478,7 @@ body.panel-open .main-container {
     bottom: 0;
     left: 280px;
     right: 0;
-    height: 200px;
+    height: 120px;
     background: rgba(13, 13, 26, 0.98);
     border-top: 3px solid var(--gold);
     display: flex;
@@ -491,7 +491,7 @@ body.panel-open .main-container {
 }
 
 .panel-left {
-    width: 200px;
+    width: 140px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -608,13 +608,13 @@ body.panel-open .main-container {
 }
 
 .panel-right {
-    width: 150px;
+    width: 100px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 15px;
+    gap: 8px;
+    padding: 10px;
     border-left: 2px solid var(--gold);
     background: var(--panel-dark);
 }
@@ -640,12 +640,12 @@ body.panel-open .main-container {
 }
 
 .action-btn {
-    width: 80px;
-    height: 80px;
+    width: 40px;
+    height: 40px;
     background: rgba(200, 168, 50, 0.1);
-    border: 3px solid var(--gold);
+    border: 2px solid var(--gold);
     color: var(--text-primary);
-    font-size: 32px;
+    font-size: 18px;
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
