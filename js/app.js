@@ -969,14 +969,33 @@ class MoltcraftApp {
         this.showToast('✅ Settings saved', 'success');
     }
 
+    _extractConfig(data) {
+        // Handle nested gateway config response: result.details.result.config
+        return data?.result?.details?.result?.config
+            || data?.result?.details?.result?.parsed
+            || data?.result?.details?.config
+            || data?.result?.config
+            || data?.config
+            || data || {};
+    }
+
+    async _fetchGatewayConfig() {
+        const res = await fetch(`${this.gatewayUrl}/api/tools/invoke`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.gatewayToken}`
+            },
+            body: JSON.stringify({ tool: 'gateway', args: { action: 'config.get' } })
+        });
+        const data = await res.json();
+        return this._extractConfig(data);
+    }
+
     async checkElevenLabsFromMoltbot() {
         const statusEl = document.getElementById('elevenLabsStatus');
         try {
-            const res = await fetch(`${this.gatewayUrl}/api/gateway/config`, {
-                headers: { 'Authorization': `Bearer ${this.gatewayToken}` }
-            });
-            const data = await res.json();
-            const config = data.result?.config || data.config || data;
+            const config = await this._fetchGatewayConfig();
             const sagKey = config.skills?.entries?.sag?.apiKey;
             if (sagKey) {
                 voice.elevenLabsKey = sagKey;
@@ -1000,11 +1019,7 @@ class MoltcraftApp {
         content.style.display = 'none';
 
         try {
-            const res = await fetch(`${this.gatewayUrl}/api/gateway/config`, {
-                headers: { 'Authorization': `Bearer ${this.gatewayToken}` }
-            });
-            const data = await res.json();
-            const config = data.result?.config || data.config || data;
+            const config = await this._fetchGatewayConfig();
 
             // --- Channels ---
             const channelsEl = document.getElementById('configChannels');
@@ -1116,11 +1131,7 @@ class MoltcraftApp {
 
     async checkOnboarding() {
         try {
-            const res = await fetch(`${this.gatewayUrl}/api/gateway/config`, {
-                headers: { 'Authorization': `Bearer ${this.gatewayToken}` }
-            });
-            const data = await res.json();
-            const config = data.result?.config || data.config || data;
+            const config = await this._fetchGatewayConfig();
 
             // Detect fresh install: no channels configured or no API auth
             const channels = config.channels || {};
