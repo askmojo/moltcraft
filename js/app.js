@@ -229,9 +229,9 @@ class MoltcraftApp {
     }
 
     getSessionType(session) {
-        const id = session.id || session.sessionId || session.key || '';
-        if (id.includes('subagent')) return 'subagent';
-        if (id.includes('isolated')) return 'isolated';
+        const key = session.key || session.id || session.sessionId || '';
+        if (key.includes('subagent')) return 'subagent';
+        if (key.includes('isolated')) return 'isolated';
         return 'main';
     }
 
@@ -258,9 +258,18 @@ class MoltcraftApp {
         
         const label = document.createElement('div');
         label.className = 'session-label';
-        // Show "main" for main session, otherwise use label or key
-        const displayLabel = session.label || session.key || session.id || 'Unknown';
-        label.textContent = displayLabel === 'main' || type === 'main' ? 'main' : displayLabel;
+        // Show proper name: label for subagents, "Bernard 🐢" for main
+        let displayLabel = 'Unknown';
+        if (type === 'main' && !session.label) {
+            displayLabel = 'Bernard 🐢';
+        } else if (session.label) {
+            displayLabel = session.label;
+        } else if (session.key) {
+            // Extract last meaningful segment from key
+            const parts = session.key.split(':');
+            displayLabel = parts[parts.length - 1].substring(0, 12);
+        }
+        label.textContent = displayLabel;
 
         headerRow.appendChild(avatar);
         headerRow.appendChild(label);
@@ -304,20 +313,26 @@ class MoltcraftApp {
         const session = this.selectedSession;
         
         // Update header
-        const displayLabel = session.label || session.key || session.id;
-        document.getElementById('selectedSessionName').textContent = 
-            displayLabel === 'main' || this.getSessionType(session) === 'main' ? 'main' : displayLabel;
+        const type = this.getSessionType(session);
+        let panelLabel = 'Unknown';
+        if (type === 'main' && !session.label) {
+            panelLabel = 'Bernard 🐢 (main)';
+        } else {
+            panelLabel = session.label || session.key || session.id;
+        }
+        document.getElementById('selectedSessionName').textContent = panelLabel;
         document.getElementById('selectedModel').textContent = session.model || 'claude-opus-4-5';
 
         // Update stats
-        const ctxPercent = session.stats?.contextUsage || 0;
-        document.getElementById('ctxProgress').style.width = ctxPercent + '%';
+        const totalTokens = session.totalTokens || 0;
+        const contextTokens = session.contextTokens || 200000;
+        const ctxPercent = contextTokens > 0 ? (totalTokens / contextTokens) * 100 : 0;
+        document.getElementById('ctxProgress').style.width = Math.min(ctxPercent, 100) + '%';
         document.getElementById('ctxPercent').textContent = Math.round(ctxPercent) + '%';
         
-        const tokens = session.stats?.totalTokens || 0;
-        document.getElementById('tokenUsage').textContent = this.formatNumber(tokens);
+        document.getElementById('tokenUsage').textContent = this.formatNumber(totalTokens);
         
-        const msgCount = session.stats?.messageCount || 0;
+        const msgCount = session.messages?.length || 0;
         document.getElementById('messageCount').textContent = msgCount;
         
         document.getElementById('channelBadge').textContent = session.channel || 'telegram';
@@ -829,21 +844,35 @@ class IsometricWorld {
     }
 
     createAgent(session) {
-        // Random position near barracks
-        const centerX = 30;
-        const centerY = 22;
-        const offsetX = (Math.random() - 0.5) * 6;
-        const offsetY = (Math.random() - 0.5) * 6;
+        const type = this.getAgentType(session);
+        const state = this.getAgentState(session);
+
+        // Building front positions (where agents stand near each building)
+        const buildingFronts = [
+            { name: 'gateway',  x: 30, y: 34 },  // In front of Gateway
+            { name: 'cron',     x: 22, y: 30 },  // In front of Cron
+            { name: 'mine',     x: 38, y: 36 },  // In front of Mine
+            { name: 'barracks', x: 30, y: 27 },  // In front of Barracks
+        ];
+
+        // Distribute agents evenly across buildings
+        const agentIndex = this.agents.length;
+        const assignedBuilding = buildingFronts[agentIndex % buildingFronts.length];
+        const offsetX = (Math.random() - 0.5) * 4;
+        const offsetY = (Math.random() - 0.5) * 3;
 
         const agent = {
             id: session.id,
             session: session,
-            x: centerX + offsetX,
-            y: centerY + offsetY,
-            targetX: centerX + offsetX,
-            targetY: centerY + offsetY,
-            type: this.getAgentType(session),
-            state: this.getAgentState(session),
+            x: assignedBuilding.x + offsetX,
+            y: assignedBuilding.y + offsetY,
+            targetX: assignedBuilding.x + offsetX,
+            targetY: assignedBuilding.y + offsetY,
+            homeBuilding: assignedBuilding.name,
+            currentDestination: null,
+            waitTimer: 0,
+            type: type,
+            state: state,
             animFrame: 0,
             walkFrame: 0,
             direction: 0,
@@ -867,20 +896,54 @@ class IsometricWorld {
         this.agents.forEach(agent => {
             agent.animFrame++;
 
-            // Wander behavior - follow paths
-            if (Math.random() < 0.005) {
-                if (agent.state === 'working') {
-                    // Go to mine
-                    agent.targetX = 38 + (Math.random() - 0.5) * 2;
-                    agent.targetY = 31 + (Math.random() - 0.5) * 2;
-                } else {
-                    // Wander between barracks and command center
-                    if (Math.random() < 0.5) {
-                        agent.targetX = 30 + (Math.random() - 0.5) * 4;
-                        agent.targetY = 30 + (Math.random() - 0.5) * 4;
+            // Building destination points (in front of each building)
+            const buildingDestinations = {
+                gateway:  { x: 30, y: 34 },
+                cron:     { x: 22, y: 30 },
+                mine:     { x: 38, y: 36 },
+                barracks: { x: 30, y: 27 },
+            };
+
+            // Path waypoints between buildings (for natural walking routes)
+            const pathWaypoints = [
+                { x: 26, y: 32 },  // Between Cron and Gateway
+                { x: 34, y: 35 },  // Between Gateway and Mine
+                { x: 30, y: 30 },  // Between Gateway and Barracks
+                { x: 26, y: 28 },  // Between Cron and Barracks
+                { x: 34, y: 30 },  // Between Barracks and Mine
+            ];
+
+            // Wait timer — agents pause at each destination before moving
+            if (agent.waitTimer > 0) {
+                agent.waitTimer--;
+            } else {
+                // Check if agent has arrived at target
+                const dx2 = agent.targetX - agent.x;
+                const dy2 = agent.targetY - agent.y;
+                const distToTarget = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+
+                if (distToTarget < 0.5) {
+                    // Arrived! Wait a bit then pick a new destination
+                    agent.waitTimer = 60 + Math.floor(Math.random() * 180); // 1-4 seconds
+
+                    // 70% chance: go to a building, 30% chance: go to a path waypoint
+                    if (Math.random() < 0.7) {
+                        const buildingNames = Object.keys(buildingDestinations);
+                        // Prefer going to a DIFFERENT building than current
+                        let dest;
+                        do {
+                            dest = buildingNames[Math.floor(Math.random() * buildingNames.length)];
+                        } while (dest === agent.currentDestination && buildingNames.length > 1);
+                        
+                        agent.currentDestination = dest;
+                        const target = buildingDestinations[dest];
+                        agent.targetX = target.x + (Math.random() - 0.5) * 4;
+                        agent.targetY = target.y + (Math.random() - 0.5) * 3;
                     } else {
-                        agent.targetX = 30 + (Math.random() - 0.5) * 4;
-                        agent.targetY = 22 + (Math.random() - 0.5) * 4;
+                        agent.currentDestination = 'path';
+                        const wp = pathWaypoints[Math.floor(Math.random() * pathWaypoints.length)];
+                        agent.targetX = wp.x + (Math.random() - 0.5) * 3;
+                        agent.targetY = wp.y + (Math.random() - 0.5) * 2;
                     }
                 }
             }
@@ -890,8 +953,8 @@ class IsometricWorld {
             const dy = agent.targetY - agent.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (dist > 0.1) {
-                const speed = 0.04; // Visible movement (2 pixels per frame at default zoom)
+            if (dist > 0.3 && agent.waitTimer <= 0) {
+                const speed = 0.06; // Visible movement between buildings
                 agent.x += (dx / dist) * speed;
                 agent.y += (dy / dist) * speed;
                 
@@ -995,45 +1058,19 @@ class IsometricWorld {
         // Draw terrain
         this.drawTerrain();
 
-        // Collect all drawable objects with depth
-        const drawables = [];
+        // Draw in layers: 1) decorations, 2) buildings, 3) agents ALWAYS ON TOP
+        
+        // Layer 1: Decorations (back to front)
+        const sortedDecos = [...this.decorations].sort((a, b) => a.y - b.y);
+        sortedDecos.forEach(deco => this.drawDecoration(deco));
 
-        // Add buildings
-        this.buildings.forEach(building => {
-            drawables.push({
-                type: 'building',
-                obj: building,
-                depth: building.y + building.height
-            });
-        });
+        // Layer 2: Buildings (back to front)
+        const sortedBuildings = [...this.buildings].sort((a, b) => a.y - b.y);
+        sortedBuildings.forEach(building => this.drawBuilding(building));
 
-        // Add decorations
-        this.decorations.forEach(deco => {
-            drawables.push({
-                type: 'decoration',
-                obj: deco,
-                depth: deco.y
-            });
-        });
-
-        // Add agents
-        this.agents.forEach(agent => {
-            drawables.push({
-                type: 'agent',
-                obj: agent,
-                depth: agent.y
-            });
-        });
-
-        // Sort by depth (back to front)
-        drawables.sort((a, b) => a.depth - b.depth);
-
-        // Draw all objects
-        drawables.forEach(item => {
-            if (item.type === 'building') this.drawBuilding(item.obj);
-            else if (item.type === 'decoration') this.drawDecoration(item.obj);
-            else if (item.type === 'agent') this.drawAgent(item.obj);
-        });
+        // Layer 3: Agents ALWAYS drawn last (always visible, never hidden by buildings)
+        const sortedAgents = [...this.agents].sort((a, b) => a.y - b.y);
+        sortedAgents.forEach(agent => this.drawAgent(agent));
 
         // Draw particles
         this.particles.forEach(p => p.draw(ctx));
@@ -1550,8 +1587,15 @@ class IsometricWorld {
         }
 
         // Nametag (floating above)
-        const label = agent.session.label || agent.session.key || agent.id.substring(0, 10);
-        const displayLabel = label === 'main' || agent.type === 'main' ? 'main' : label;
+        let displayLabel = 'Unknown';
+        if (agent.type === 'main' && !agent.session.label) {
+            displayLabel = 'Bernard 🐢';
+        } else if (agent.session.label) {
+            displayLabel = agent.session.label;
+        } else if (agent.session.key) {
+            const parts = agent.session.key.split(':');
+            displayLabel = parts[parts.length - 1].substring(0, 12);
+        }
         const nameWidth = ctx.measureText(displayLabel).width + 10;
         
         ctx.fillStyle = 'rgba(0,0,0,0.8)';
