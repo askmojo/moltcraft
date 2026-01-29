@@ -6,7 +6,7 @@ Turn your AI agents into a living pixel world — a visual dashboard for [Moltbo
 ![npm](https://img.shields.io/npm/v/@ask-mojo/moltcraft)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
 
-![Moltcraft Dashboard](screenshot.jpg)
+![Moltcraft Dashboard](https://raw.githubusercontent.com/askmojo/moltcraft/main/screenshot.jpg)
 
 ## What is this?
 
