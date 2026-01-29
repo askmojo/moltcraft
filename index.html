@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⛏️ MOLTCRAFT - Agent Dashboard</title>
-    <link rel="stylesheet" href="css/style.css?v=15">
+    <link rel="stylesheet" href="css/style.css?v=16">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -61,6 +61,7 @@ window.onerror = function(msg, url, line, col, err) {
             </span>
         </div>
         <div class="top-bar-right">
+            <button id="settingsBtn" class="mute-btn" title="Settings">⚙️</button>
             <button id="muteBtn" class="mute-btn" title="Toggle Sound">🔊</button>
             <span id="onlineStatus" class="status-badge online">ONLINE</span>
         </div>
@@ -96,6 +97,7 @@ window.onerror = function(msg, url, line, col, err) {
                 <div class="chat-empty">Select an agent to chat...</div>
             </div>
             <div class="chat-input-row">
+                <button id="micBtn" class="mic-btn" title="Hold to speak">🎤</button>
                 <input type="text" id="messageInput" placeholder="Send a message..." class="chat-input">
                 <button id="sendMessageBtn" class="send-btn">⚡</button>
             </div>
@@ -156,9 +158,43 @@ window.onerror = function(msg, url, line, col, err) {
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="pixel-title">⚙️ SETTINGS</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>ElevenLabs API Key</label>
+                    <input type="password" id="elevenLabsKey" placeholder="sk_..." class="quest-input" style="height:auto;resize:none;">
+                </div>
+                <div class="form-group">
+                    <label>Default Voice ID</label>
+                    <input type="text" id="elevenLabsVoice" placeholder="21m00Tcm4TlvDq8ikWAM (Rachel)" class="quest-input" style="height:auto;resize:none;">
+                </div>
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:10px;">
+                        <input type="checkbox" id="autoSpeakEnabled"> Auto-speak agent responses
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:10px;">
+                        <input type="checkbox" id="autoSpeakToasts"> Speak toast notifications
+                    </label>
+                </div>
+                <p style="color:var(--text-secondary);font-size:11px;margin-top:10px;">🎤 Mic uses browser Speech Recognition (no API key needed).<br>🔊 Voice requires ElevenLabs API key.</p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="window.moltcraftApp.saveSettings()" class="btn-primary">SAVE</button>
+                <button onclick="window.moltcraftApp.hideSettings()" class="btn-secondary">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notifications Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <script src="js/app.js?v=15"></script>
+    <script src="js/app.js?v=16"></script>
 </body>
 </html>

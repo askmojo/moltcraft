@@ -761,6 +761,56 @@ body.panel-open .main-container {
 }
 
 /* ========================================
+   MIC BUTTON
+   ======================================== */
+
+.mic-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(200, 168, 50, 0.1);
+    border: 2px solid var(--gold);
+    color: var(--text-primary);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.mic-btn:hover {
+    background: rgba(200, 168, 50, 0.3);
+    box-shadow: 0 0 15px rgba(200, 168, 50, 0.5);
+}
+
+.mic-btn.recording {
+    border-color: var(--red);
+    background: rgba(248, 113, 113, 0.3);
+    color: var(--red);
+    animation: mic-pulse 1s infinite;
+    box-shadow: 0 0 20px rgba(248, 113, 113, 0.5);
+}
+
+@keyframes mic-pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(248, 113, 113, 0.3); }
+    50% { box-shadow: 0 0 25px rgba(248, 113, 113, 0.7); }
+}
+
+/* Speaking indicator on agent items */
+.session-item.speaking::after {
+    content: '🔊';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    animation: speak-pulse 0.5s infinite alternate;
+}
+
+@keyframes speak-pulse {
+    from { opacity: 0.5; }
+    to { opacity: 1; }
+}
+
+/* ========================================
    MUTE BUTTON
    ======================================== */
 

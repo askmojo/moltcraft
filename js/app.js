@@ -171,6 +171,190 @@ class SoundEngine {
 // Global sound engine
 const sfx = new SoundEngine();
 
+// ========================================
+// VOICE ENGINE - ElevenLabs TTS + Browser STT
+// ========================================
+
+class VoiceEngine {
+    constructor() {
+        this.elevenLabsKey = '';
+        this.defaultVoiceId = '21m00Tcm4TlvDq8ikWAM'; // Rachel
+        this.autoSpeak = false;
+        this.autoSpeakToasts = false;
+        this.speaking = false;
+        this.audioQueue = [];
+        this.recognition = null;
+        this.isRecording = false;
+        this.loadSettings();
+        this.initSTT();
+    }
+
+    loadSettings() {
+        try {
+            const saved = localStorage.getItem('moltcraft_voice_settings');
+            if (saved) {
+                const s = JSON.parse(saved);
+                this.elevenLabsKey = s.elevenLabsKey || '';
+                this.defaultVoiceId = s.defaultVoiceId || '21m00Tcm4TlvDq8ikWAM';
+                this.autoSpeak = s.autoSpeak || false;
+                this.autoSpeakToasts = s.autoSpeakToasts || false;
+            }
+        } catch (e) {}
+    }
+
+    saveSettings() {
+        localStorage.setItem('moltcraft_voice_settings', JSON.stringify({
+            elevenLabsKey: this.elevenLabsKey,
+            defaultVoiceId: this.defaultVoiceId,
+            autoSpeak: this.autoSpeak,
+            autoSpeakToasts: this.autoSpeakToasts
+        }));
+    }
+
+    get isConfigured() {
+        return !!this.elevenLabsKey;
+    }
+
+    // --- Speech-to-Text (Browser native) ---
+
+    initSTT() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            console.warn('Speech Recognition not supported');
+            return;
+        }
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = false;
+        this.recognition.interimResults = true;
+        this.recognition.lang = 'en-US';
+
+        this.recognition.onresult = (event) => {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
+            }
+            const input = document.getElementById('messageInput');
+            if (input) input.value = transcript;
+
+            // If final result, auto-focus input
+            if (event.results[event.results.length - 1].isFinal) {
+                if (input) input.focus();
+            }
+        };
+
+        this.recognition.onend = () => {
+            this.isRecording = false;
+            const btn = document.getElementById('micBtn');
+            if (btn) btn.classList.remove('recording');
+        };
+
+        this.recognition.onerror = (event) => {
+            console.warn('STT error:', event.error);
+            this.isRecording = false;
+            const btn = document.getElementById('micBtn');
+            if (btn) btn.classList.remove('recording');
+        };
+    }
+
+    toggleRecording() {
+        if (!this.recognition) {
+            alert('Speech Recognition not supported in this browser. Use Chrome.');
+            return;
+        }
+
+        if (this.isRecording) {
+            this.recognition.stop();
+            this.isRecording = false;
+            document.getElementById('micBtn')?.classList.remove('recording');
+        } else {
+            // Detect language from page or default
+            this.recognition.lang = navigator.language || 'en-US';
+            this.recognition.start();
+            this.isRecording = true;
+            document.getElementById('micBtn')?.classList.add('recording');
+            sfx.click();
+        }
+    }
+
+    // --- Text-to-Speech (ElevenLabs) ---
+
+    async speak(text, voiceId) {
+        if (!this.isConfigured || !text) return;
+
+        const vid = voiceId || this.defaultVoiceId;
+        // Truncate very long texts
+        const truncated = text.length > 500 ? text.slice(0, 500) + '...' : text;
+
+        try {
+            const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${vid}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'xi-api-key': this.elevenLabsKey
+                },
+                body: JSON.stringify({
+                    text: truncated,
+                    model_id: 'eleven_multilingual_v2',
+                    voice_settings: {
+                        stability: 0.5,
+                        similarity_boost: 0.75
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                console.warn('ElevenLabs TTS error:', response.status);
+                return;
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            await this.playAudio(url);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.warn('TTS failed:', e);
+        }
+    }
+
+    playAudio(url) {
+        return new Promise((resolve) => {
+            const audio = new Audio(url);
+            this.speaking = true;
+            audio.onended = () => {
+                this.speaking = false;
+                resolve();
+            };
+            audio.onerror = () => {
+                this.speaking = false;
+                resolve();
+            };
+            audio.play().catch(() => {
+                this.speaking = false;
+                resolve();
+            });
+        });
+    }
+
+    // Auto-speak agent response if enabled
+    async speakAgentResponse(text) {
+        if (this.autoSpeak && this.isConfigured && text) {
+            await this.speak(text);
+        }
+    }
+
+    // Auto-speak toast if enabled
+    async speakToast(message) {
+        if (this.autoSpeakToasts && this.isConfigured && message) {
+            // Strip emoji for cleaner speech
+            const clean = message.replace(/[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/gu, '').trim();
+            if (clean) await this.speak(clean);
+        }
+    }
+}
+
+// Global voice engine
+const voice = new VoiceEngine();
+
 class MoltcraftApp {
     constructor() {
         this.gatewayUrl = window.location.origin;
@@ -211,6 +395,8 @@ class MoltcraftApp {
         document.getElementById('refreshBtn').addEventListener('click', () => this.refreshData());
         document.getElementById('newQuestBtn').addEventListener('click', () => this.showNewQuestModal());
         document.getElementById('sendMessageBtn').addEventListener('click', () => this.sendMessage());
+        document.getElementById('micBtn').addEventListener('click', () => voice.toggleRecording());
+        document.getElementById('settingsBtn').addEventListener('click', () => this.showSettings());
         document.getElementById('muteBtn').addEventListener('click', () => {
             sfx.init();
             const muted = sfx.toggleMute();
@@ -677,6 +863,29 @@ class MoltcraftApp {
         return num.toString();
     }
 
+    showSettings() {
+        const modal = document.getElementById('settingsModal');
+        document.getElementById('elevenLabsKey').value = voice.elevenLabsKey;
+        document.getElementById('elevenLabsVoice').value = voice.defaultVoiceId;
+        document.getElementById('autoSpeakEnabled').checked = voice.autoSpeak;
+        document.getElementById('autoSpeakToasts').checked = voice.autoSpeakToasts;
+        modal.classList.remove('hidden');
+    }
+
+    hideSettings() {
+        document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    saveSettings() {
+        voice.elevenLabsKey = document.getElementById('elevenLabsKey').value.trim();
+        voice.defaultVoiceId = document.getElementById('elevenLabsVoice').value.trim() || '21m00Tcm4TlvDq8ikWAM';
+        voice.autoSpeak = document.getElementById('autoSpeakEnabled').checked;
+        voice.autoSpeakToasts = document.getElementById('autoSpeakToasts').checked;
+        voice.saveSettings();
+        this.hideSettings();
+        this.showToast('✅ Voice settings saved', 'success');
+    }
+
     showNewQuestModal() {
         const modal = document.getElementById('newQuestModal');
         const input = document.getElementById('questTaskInput');
@@ -722,6 +931,7 @@ class MoltcraftApp {
     showToast(message, type = 'info') {
         if (type === 'error') sfx.error();
         else sfx.toast();
+        voice.speakToast(message);
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
         toast.className = 'toast toast-' + type;
@@ -772,8 +982,25 @@ class MoltcraftApp {
         
         if (!messages || messages.length === 0) {
             chatContent.innerHTML = '<div class="chat-empty">No messages yet...</div>';
+            this._lastChatMsgCount = 0;
             return;
         }
+        
+        // Detect new assistant messages and auto-speak the latest
+        const assistantMsgs = messages.filter(m => m.role === 'assistant');
+        const prevCount = this._lastChatMsgCount || 0;
+        if (assistantMsgs.length > prevCount && prevCount > 0) {
+            const newest = assistantMsgs[assistantMsgs.length - 1];
+            let spText = '';
+            if (newest.content) {
+                for (const part of (Array.isArray(newest.content) ? newest.content : [newest.content])) {
+                    if (part.type === 'text' && part.text) { spText = part.text; break; }
+                }
+                if (!spText && typeof newest.content === 'string') spText = newest.content;
+            }
+            if (spText) voice.speakAgentResponse(spText);
+        }
+        this._lastChatMsgCount = assistantMsgs.length;
         
         messages.forEach(msg => {
             const bubble = document.createElement('div');
