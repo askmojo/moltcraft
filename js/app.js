@@ -340,7 +340,7 @@ class MoltcraftApp {
     }
 
     updateBottomPanel() {
-        const panel = document.getElementById('bottomPanel');
+        const panel = document.getElementById('rightSidebar');
         
         if (!this.selectedSession) {
             panel.classList.add('hidden');

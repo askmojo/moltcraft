@@ -429,32 +429,32 @@ body {
 }
 
 /* ========================================
-   BOTTOM PANEL - SESSION DETAILS
+   RIGHT SIDEBAR - AGENT DETAILS & CHAT
    ======================================== */
 
-.bottom-panel {
-    position: fixed;
-    bottom: 0;
-    left: 280px;
-    right: 0;
-    height: 200px;
+.right-sidebar {
+    width: 360px;
     background: rgba(13, 13, 26, 0.98);
-    border-top: 3px solid var(--gold);
+    border-left: 3px solid var(--gold);
     display: flex;
-    transition: transform 0.3s;
-    z-index: 100;
+    flex-direction: column;
+    transition: width 0.3s, opacity 0.3s;
+    overflow: hidden;
 }
 
-.bottom-panel.hidden {
-    transform: translateY(100%);
+.right-sidebar.hidden {
+    width: 0;
+    opacity: 0;
+    border-left: none;
+    pointer-events: none;
 }
 
-.panel-left {
-    width: 200px;
+.right-sidebar-portrait {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-right: 2px solid var(--gold);
+    padding: 15px;
+    border-bottom: 2px solid var(--gold);
     background: var(--panel-dark);
 }
 
@@ -486,12 +486,9 @@ body {
     border-top: none;
 }
 
-.panel-center {
-    flex: 1;
+.right-sidebar-info {
     padding: 15px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    border-bottom: 2px solid rgba(200, 168, 50, 0.3);
 }
 
 .session-header {
@@ -503,8 +500,11 @@ body {
 
 .session-name {
     font-weight: bold;
-    font-size: 16px;
+    font-size: 14px;
     color: var(--gold-bright);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .model-badge {
@@ -514,14 +514,16 @@ body {
     color: var(--blue);
     font-size: 10px;
     font-family: monospace;
+    flex-shrink: 0;
 }
 
 .session-stats {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
     margin-bottom: 10px;
-    font-size: 12px;
+    font-size: 11px;
+    flex-wrap: wrap;
 }
 
 .stat-item {
@@ -565,17 +567,39 @@ body {
     text-transform: uppercase;
 }
 
-.session-chat {
+.right-sidebar-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn-small {
+    width: 40px;
+    height: 40px;
+    background: rgba(200, 168, 50, 0.1);
+    border: 2px solid var(--gold);
+    color: var(--text-primary);
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-btn-small:hover {
+    background: rgba(200, 168, 50, 0.3);
+    box-shadow: 0 0 15px rgba(200, 168, 50, 0.5);
+}
+
+.right-sidebar-chat {
     flex: 1;
     display: flex;
     flex-direction: column;
+    padding: 15px;
     overflow: hidden;
 }
 
 .chat-title {
     font-size: 11px;
     color: var(--gold);
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -590,18 +614,6 @@ body {
     font-size: 11px;
     color: var(--text-primary);
     line-height: 1.5;
-}
-
-.panel-right {
-    width: 150px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 15px;
-    border-left: 2px solid var(--gold);
-    background: var(--panel-dark);
 }
 
 .action-btn {
