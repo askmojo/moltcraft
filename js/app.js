@@ -7,6 +7,170 @@ function sessionUID(s) {
     return s.sessionId || s.id || s.key || ('unknown-' + Math.random());
 }
 
+// ========================================
+// SOUND ENGINE - Synthesized Retro Sounds
+// ========================================
+
+class SoundEngine {
+    constructor() {
+        this.ctx = null;
+        this.muted = false;
+        this.volume = 0.3;
+        this.initialized = false;
+        // Ambient
+        this.ambientPlaying = false;
+        this.ambientGain = null;
+        this.ambientOscillators = [];
+    }
+
+    init() {
+        if (this.initialized) return;
+        try {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.gain.value = this.volume;
+            this.masterGain.connect(this.ctx.destination);
+            this.initialized = true;
+        } catch (e) {
+            console.warn('Web Audio not available');
+        }
+    }
+
+    setMuted(muted) {
+        this.muted = muted;
+        if (this.masterGain) {
+            this.masterGain.gain.value = muted ? 0 : this.volume;
+        }
+    }
+
+    toggleMute() {
+        this.setMuted(!this.muted);
+        return this.muted;
+    }
+
+    _tone(freq, duration, type = 'square', delay = 0) {
+        if (!this.initialized || this.muted) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(this.ctx.currentTime + delay);
+        osc.stop(this.ctx.currentTime + delay + duration);
+    }
+
+    // --- Sound effects ---
+
+    connect() {
+        // Ascending arpeggio — gateway connected
+        this._tone(262, 0.12, 'square', 0);
+        this._tone(330, 0.12, 'square', 0.1);
+        this._tone(392, 0.12, 'square', 0.2);
+        this._tone(523, 0.2, 'square', 0.3);
+    }
+
+    selectAgent() {
+        // Quick blip
+        this._tone(440, 0.08, 'square', 0);
+        this._tone(660, 0.1, 'square', 0.06);
+    }
+
+    newAgent() {
+        // Fanfare — new session detected
+        this._tone(392, 0.1, 'square', 0);
+        this._tone(494, 0.1, 'square', 0.1);
+        this._tone(587, 0.15, 'square', 0.2);
+        this._tone(784, 0.25, 'triangle', 0.3);
+    }
+
+    sendMessage() {
+        // Whoosh send
+        this._tone(300, 0.06, 'sawtooth', 0);
+        this._tone(500, 0.08, 'sawtooth', 0.04);
+    }
+
+    receiveMessage() {
+        // Gentle ping
+        this._tone(880, 0.1, 'sine', 0);
+        this._tone(660, 0.12, 'sine', 0.08);
+    }
+
+    spawnQuest() {
+        // Epic spawn — horn call
+        this._tone(294, 0.15, 'sawtooth', 0);
+        this._tone(392, 0.15, 'sawtooth', 0.12);
+        this._tone(494, 0.15, 'sawtooth', 0.24);
+        this._tone(587, 0.3, 'sawtooth', 0.36);
+        this._tone(784, 0.4, 'triangle', 0.5);
+    }
+
+    firework() {
+        // Pop + sparkle
+        this._tone(200, 0.05, 'sawtooth', 0);
+        this._tone(800, 0.08, 'sine', 0.05);
+        this._tone(1200, 0.06, 'sine', 0.1);
+        this._tone(600, 0.1, 'sine', 0.15);
+    }
+
+    toast() {
+        // Notification ding
+        this._tone(523, 0.08, 'sine', 0);
+        this._tone(659, 0.12, 'sine', 0.06);
+    }
+
+    error() {
+        // Descending buzz
+        this._tone(300, 0.15, 'square', 0);
+        this._tone(200, 0.2, 'square', 0.12);
+    }
+
+    click() {
+        // UI click
+        this._tone(800, 0.03, 'square', 0);
+    }
+
+    // Ambient background — low drone + wind
+    startAmbient() {
+        if (!this.initialized || this.ambientPlaying) return;
+        this.ambientPlaying = true;
+        this.ambientGain = this.ctx.createGain();
+        this.ambientGain.gain.value = 0.04;
+        this.ambientGain.connect(this.masterGain);
+
+        // Low drone
+        const drone = this.ctx.createOscillator();
+        drone.type = 'sine';
+        drone.frequency.value = 55;
+        drone.connect(this.ambientGain);
+        drone.start();
+        this.ambientOscillators.push(drone);
+
+        // Subtle wind noise via filtered oscillator
+        const wind = this.ctx.createOscillator();
+        wind.type = 'sawtooth';
+        wind.frequency.value = 80;
+        const windFilter = this.ctx.createBiquadFilter();
+        windFilter.type = 'lowpass';
+        windFilter.frequency.value = 120;
+        wind.connect(windFilter);
+        windFilter.connect(this.ambientGain);
+        wind.start();
+        this.ambientOscillators.push(wind);
+    }
+
+    stopAmbient() {
+        this.ambientOscillators.forEach(o => { try { o.stop(); } catch(e) {} });
+        this.ambientOscillators = [];
+        this.ambientPlaying = false;
+    }
+}
+
+// Global sound engine
+const sfx = new SoundEngine();
+
 class MoltcraftApp {
     constructor() {
         this.gatewayUrl = window.location.origin;
@@ -47,6 +211,13 @@ class MoltcraftApp {
         document.getElementById('refreshBtn').addEventListener('click', () => this.refreshData());
         document.getElementById('newQuestBtn').addEventListener('click', () => this.showNewQuestModal());
         document.getElementById('sendMessageBtn').addEventListener('click', () => this.sendMessage());
+        document.getElementById('muteBtn').addEventListener('click', () => {
+            sfx.init();
+            const muted = sfx.toggleMute();
+            const btn = document.getElementById('muteBtn');
+            btn.textContent = muted ? '🔇' : '🔊';
+            btn.classList.toggle('muted', muted);
+        });
         document.getElementById('messageInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -119,6 +290,11 @@ class MoltcraftApp {
             document.getElementById('onlineStatus').classList.add('online');
             document.getElementById('onlineStatus').textContent = 'ONLINE';
             
+            // Init sound & play connect SFX + ambient
+            sfx.init();
+            sfx.connect();
+            sfx.startAmbient();
+            
             // Start auto-refresh
             this.refreshInterval = setInterval(() => this.refreshData(), 10000);
             
@@ -182,6 +358,7 @@ class MoltcraftApp {
                 const session = sessions.find(s => sessionUID(s) === id);
                 const label = session?.label || 'Agent';
                 this.showToast('🎉 New agent spawned: ' + label, 'success');
+                sfx.newAgent();
                 if (this.world) {
                     this.world.spawnFireworks(31, 23);
                 }
@@ -333,6 +510,7 @@ class MoltcraftApp {
 
     selectSession(session) {
         this.selectedSession = session;
+        sfx.selectAgent();
         this.updateUI();
         this.updateBottomPanel();
         this.loadChatHistory(); // Load chat when selecting
@@ -519,10 +697,12 @@ class MoltcraftApp {
             
             this.hideNewQuestModal();
             this.showToast('🎉 New quest spawned: ' + label, 'success');
+            sfx.spawnQuest();
             
             // Trigger fireworks at the barracks
             if (this.world) {
                 this.world.spawnFireworks(31, 23);
+                setTimeout(() => sfx.firework(), 500);
             }
             
             // Refresh to show new agent
@@ -533,6 +713,8 @@ class MoltcraftApp {
     }
 
     showToast(message, type = 'info') {
+        if (type === 'error') sfx.error();
+        else sfx.toast();
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
         toast.className = 'toast toast-' + type;
@@ -621,6 +803,7 @@ class MoltcraftApp {
         const message = input.value.trim();
         
         if (!message || !this.selectedSession || !this.selectedSession.key) return;
+        sfx.sendMessage();
         
         try {
             await this.invokeAPI('sessions_send', {
