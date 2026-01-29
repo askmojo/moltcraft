@@ -786,13 +786,13 @@ class IsometricWorld {
                     timer: 120,
                     msgIndex: 0,
                     messages: [
-                        () => { const s = window.moltcraftApp?.sessions; return s ? `${s.length} agents online` : 'Booting up...'; },
-                        () => 'All systems nominal',
-                        () => 'Tokens flowing...',
-                        () => { const s = window.moltcraftApp?.calculateStats(); return s ? `${s.working} working hard!` : 'Standing by...'; },
-                        () => 'Gateway is OPEN',
-                        () => 'Orders dispatched!',
-                        () => 'Signal strong ⚡'
+                        () => { const s = window.moltcraftApp?.sessions; return s ? `${s.length} sessions active` : 'Connecting to gateway...'; },
+                        () => { const s = window.moltcraftApp?.calculateStats(); return s?.working ? `${s.working} agents processing` : 'Idle — waiting for tasks'; },
+                        () => { const c = document.getElementById('totalCost')?.textContent; return c && c !== '$0.0000' ? `Spend: ${c}` : 'No API calls yet'; },
+                        () => { const s = window.moltcraftApp?.sessions; const channels = [...new Set((s||[]).map(x=>x.channel).filter(Boolean))]; return channels.length ? `Channels: ${channels.join(', ')}` : 'No channels connected'; },
+                        () => { const s = window.moltcraftApp?.calculateStats(); return s ? `${s.working} working, ${s.idle} idle, ${s.waiting} waiting` : 'Loading stats...'; },
+                        () => { const s = window.moltcraftApp?.sessions; const models = [...new Set((s||[]).map(x=>x.model).filter(Boolean))]; return models.length ? `Models: ${models.map(m=>m.split('/').pop()).join(', ')}` : 'No models loaded'; },
+                        () => { const t = document.getElementById('activeTime')?.textContent; return t && t !== '00:00:00' ? `Uptime: ${t}` : 'Just started'; }
                     ]
                 }
             },
@@ -811,13 +811,11 @@ class IsometricWorld {
                     timer: 180,
                     msgIndex: 0,
                     messages: [
-                        () => 'Tick tock...',
-                        () => 'Time waits for none!',
-                        () => 'Schedules running',
-                        () => 'BONG BONG BONG!',
-                        () => 'Cron never sleeps',
-                        () => 'Next job incoming...',
-                        () => '*pendulum swings*'
+                        () => { const app = window.moltcraftApp; if (!app?.gatewayUrl) return 'No gateway'; return fetch(`${app.gatewayUrl}/api/cron/list`, {headers:{'Authorization':`Bearer ${app.gatewayToken}`}}).then(r=>r.json()).then(d=>{const jobs=d.jobs||[];window._cronJobs=jobs;return jobs.length?`${jobs.length} cron jobs`:'No cron jobs';}).catch(()=>'Clock offline'); },
+                        () => { const jobs = window._cronJobs; if (!jobs?.length) return 'No schedules'; const j = jobs[Math.floor(Math.random()*jobs.length)]; return j.name ? `Job: ${j.name}` : 'Job running...'; },
+                        () => { const jobs = window._cronJobs; if (!jobs?.length) return 'Idle clock'; const enabled = jobs.filter(j=>j.enabled!==false).length; return `${enabled}/${jobs.length} jobs enabled`; },
+                        () => { const jobs = window._cronJobs; if (!jobs?.length) return 'Waiting...'; const j = jobs.find(j=>j.schedule?.kind==='cron'); return j ? `Schedule: ${j.schedule.expr||'custom'}` : 'Timer-based jobs'; },
+                        () => { const jobs = window._cronJobs; if (!jobs?.length) return 'No timers'; const every = jobs.filter(j=>j.schedule?.kind==='every'); return every.length ? `${every.length} recurring timers` : 'Cron expressions only'; }
                     ]
                 }
             },
@@ -836,13 +834,11 @@ class IsometricWorld {
                     timer: 150,
                     msgIndex: 0,
                     messages: [
-                        () => 'Mining tokens...',
-                        () => { const t = document.getElementById('tokenCount')?.textContent; return t && t !== '0' ? `${t} tokens mined!` : 'Digging deep...'; },
-                        () => 'Digging deep...',
-                        () => '💎 Found a gem!',
-                        () => '*pickaxe sounds*',
-                        () => 'More ore down here!',
-                        () => 'Cart is full!'
+                        () => { const t = document.getElementById('tokenCount')?.textContent; return t && t !== '0' ? `${Number(t).toLocaleString()} tokens used` : 'No tokens yet'; },
+                        () => { const c = document.getElementById('totalCost')?.textContent; return c && c !== '$0.0000' ? `Cost so far: ${c}` : 'Zero spend'; },
+                        () => { const s = window.moltcraftApp?.sessions; if (!s?.length) return 'No sessions'; const total = s.reduce((a,x)=>a+(x.totalTokens||0),0); return total ? `${total.toLocaleString()} total tokens` : 'Waiting for usage...'; },
+                        () => { const s = window.moltcraftApp?.sessions; if (!s?.length) return 'Idle mine'; const biggest = s.reduce((max,x)=>(x.totalTokens||0)>(max.totalTokens||0)?x:max,s[0]); return biggest?.label ? `Top miner: ${biggest.label.slice(0,20)}` : 'Mining...'; },
+                        () => { const s = window.moltcraftApp?.sessions; if (!s?.length) return 'Empty shaft'; const msgs = s.reduce((a,x)=>a+(x.messageCount||0),0); return `${msgs} messages processed`; }
                     ]
                 }
             },
@@ -861,13 +857,11 @@ class IsometricWorld {
                     timer: 200,
                     msgIndex: 0,
                     messages: [
-                        () => { const s = window.moltcraftApp?.sessions; return s ? `${s.length} agents ready!` : 'Recruiting...'; },
-                        () => 'All hands on deck!',
-                        () => 'Recruiting...',
-                        () => 'Training in progress',
-                        () => 'Agents assemble!',
-                        () => 'Ready for orders!',
-                        () => '*sword clashing*'
+                        () => { const s = window.moltcraftApp?.sessions; if (!s?.length) return 'No agents'; const main = s.filter(x=>x.kind==='main').length; const sub = s.filter(x=>x.kind==='subagent').length; return `${main} main, ${sub} sub-agents`; },
+                        () => { const s = window.moltcraftApp?.sessions; if (!s?.length) return 'Empty hall'; const latest = s[s.length-1]; return latest?.label ? `Latest: ${latest.label.slice(0,25)}` : 'Awaiting recruits'; },
+                        () => { const s = window.moltcraftApp?.sessions; if (!s?.length) return 'Doors open'; const active = s.filter(x=>x.lastActivity && (Date.now()-new Date(x.lastActivity).getTime())<300000).length; return `${active} active in last 5min`; },
+                        () => { const s = window.moltcraftApp?.sessions; if (!s?.length) return 'Roll call...'; const channels = (s||[]).map(x=>x.channel).filter(Boolean); const tg = channels.filter(c=>c==='telegram').length; const wa = channels.filter(c=>c==='whatsapp').length; return tg||wa ? `${tg} Telegram, ${wa} WhatsApp` : `${s.length} sessions total`; },
+                        () => { const s = window.moltcraftApp?.sessions; if (!s?.length) return 'Recruiting...'; const models = (s||[]).map(x=>x.model).filter(Boolean); const opus = models.filter(m=>m.includes('opus')).length; const sonnet = models.filter(m=>m.includes('sonnet')).length; return `${opus} Opus, ${sonnet} Sonnet`; }
                     ]
                 }
             }
