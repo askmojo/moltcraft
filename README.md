@@ -113,7 +113,7 @@ Moltcraft supports voice input and output:
 - 🌐 [Moltcraft page](https://moltcraft.xyz/)
 - 📦 [npm package](https://www.npmjs.com/package/@ask-mojo/moltcraft)
 - 📖 [Moltbot docs](https://docs.molt.bot)
-- 💬 [Discord community](https://discord.gg/JPDBtyqn)
+- 💬 [Discord community](https://discord.gg/dbemxMSt)
 - 🎬 [Video Demo](https://youtu.be/Kz5efD4eZjU)
 
 ## License
