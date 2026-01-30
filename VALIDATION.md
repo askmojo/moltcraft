@@ -3,7 +3,7 @@
 ## Syntax Validation
 
 ```bash
-$ cd /home/bernard/moltbot-dashboard
+$ cd moltcraft
 $ node -c js/app.js
 # No output = SUCCESS ✅
 ```
@@ -252,7 +252,7 @@ $ node -c js/app.js
 ## File Integrity
 
 ```bash
-$ ls -lh /home/bernard/moltbot-dashboard/
+$ ls -lh moltcraft/
 total XXX
 -rw-r--r-- 1 bernard bernard  XXX index.html
 drwxr-xr-x 2 bernard bernard  XXX css/
@@ -325,7 +325,7 @@ All features tested and validated at code level.
 ## Quick Start
 
 ```bash
-cd /home/bernard/moltbot-dashboard
+cd moltcraft
 python3 -m http.server 8000
 # Open http://localhost:8000 in browser
 ```

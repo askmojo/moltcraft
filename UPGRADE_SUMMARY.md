@@ -194,4 +194,4 @@ The dashboard is now **visually stunning** with:
 
 **Version bumped to v=11** in all files.
 
-Launch at: `/home/bernard/moltbot-dashboard/index.html`
+Launch: open `index.html` in your browser, or run `npx @ask-mojo/moltcraft`

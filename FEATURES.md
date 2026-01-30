@@ -150,7 +150,7 @@
 ## File Structure
 
 ```
-/home/bernard/moltbot-dashboard/
+moltcraft/
 ├── index.html          # v11 - UI structure
 ├── js/
 │   └── app.js         # v11 - All logic & rendering

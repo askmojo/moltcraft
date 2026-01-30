@@ -121,7 +121,7 @@
 
 ### Launch
 ```bash
-cd /home/bernard/moltbot-dashboard
+cd moltcraft
 # Open index.html in browser
 # Or serve via: python3 -m http.server 8000
 ```

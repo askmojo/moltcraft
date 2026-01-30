@@ -4,7 +4,7 @@ MOLTCRAFT VISUAL MEGA-UPGRADE COMPLETE
 
 🎉 ALL FEATURES IMPLEMENTED - DEMO READY!
 
-Dashboard Location: /home/bernard/moltbot-dashboard/
+Dashboard: run `npx @ask-mojo/moltcraft` or open `index.html`
 
 Files Modified:
 ✅ index.html (v11)
@@ -54,7 +54,7 @@ TECHNICAL VALIDATION
 QUICK START
 ========================================
 
-1. Open: /home/bernard/moltbot-dashboard/index.html
+1. Run: `npx @ask-mojo/moltcraft` (or open index.html)
 2. Enter gateway URL + token
 3. Click "JOIN SERVER"
 4. ENJOY THE SHOW! 🎬
