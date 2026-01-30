@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# Dev/AI-generated docs (keep locally, not in repo)
+COMPLETED.txt
+DEMO_ACTIONS.md
+DEMO_GUIDE.md
+DEMO_SCRIPT.md
+UPGRADE_SUMMARY.md
+VALIDATION.md
+LAUNCH_PLAN.md
+REDESIGN_NOTES.md
+COMMUNITY_RESEARCH.md
+DISCORD_SETUP.md
+TODO.md
+NOTES.md
+*_NOTES.md
+*_PLAN.md
+*_SUMMARY.md
+*_VALIDATION.md
