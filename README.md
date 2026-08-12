@@ -1,3 +1,5 @@
+
+
 # ⛏️ Moltcraft
 
 Turn your AI agents into a living pixel world — a visual dashboard for [Moltbot](https://docs.molt.bot).
@@ -110,7 +112,7 @@ Moltcraft supports voice input and output:
 
 ## Links
 
-- 🌐 [Moltcraft page](https://moltcraft.xyz/)
+- 🌐 [Moltcraft page](https://moltcraft.pages.dev)
 - 📦 [npm package](https://www.npmjs.com/package/@ask-mojo/moltcraft)
 - 📖 [Moltbot docs](https://docs.molt.bot)
 - 💬 [Discord community](https://discord.gg/dbemxMSt)
